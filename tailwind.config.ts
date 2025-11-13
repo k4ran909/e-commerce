@@ -10,6 +10,10 @@ export default {
         md: ".375rem", /* 6px */
         sm: ".1875rem", /* 3px */
       },
+      fontFamily: {
+        serif: ["Playfair Display", "serif"],
+        sans: ["Montserrat", "sans-serif"],
+      },
       colors: {
         // Flat / base colors (regular buttons)
         background: "hsl(var(--background) / <alpha-value>)",
