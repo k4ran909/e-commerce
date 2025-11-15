@@ -1,14 +1,91 @@
-import type { Express } from "express";
+import express, { type Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertProductSchema, insertOrderSchema } from "@shared/schema";
+import { insertProductSchema, insertOrderSchema, insertUserSchema } from "@shared/schema";
+import { z } from "zod";
+import { createHash } from "crypto";
 import path from "path";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Serve static assets
-  app.use("/assets", (req, res, next) => {
-    const express = require("express");
-    express.static(path.join(process.cwd(), "attached_assets"))(req, res, next);
+  app.use(
+    "/assets",
+    express.static(
+      // Resolve relative to the built server file (dist) and dev (src)
+      path.resolve(import.meta.dirname, "..", "attached_assets")
+    )
+  );
+
+  // Util: parse cookies
+  const parseCookies = (cookieHeader?: string) => {
+    const out: Record<string, string> = {};
+    if (!cookieHeader) return out;
+    cookieHeader.split(";").forEach((part) => {
+      const [k, ...v] = part.trim().split("=");
+      out[k] = decodeURIComponent(v.join("="));
+    });
+    return out;
+  };
+
+  const setSessionCookie = (res: any, sid: string) => {
+    const cookie = `sid=${encodeURIComponent(sid)}; Path=/; Max-Age=${7 * 24 * 60 * 60}; SameSite=Lax`;
+    res.setHeader("Set-Cookie", cookie);
+  };
+
+  const getUserFromRequest = async (req: any) => {
+    const cookies = parseCookies(req.headers.cookie);
+    const sid = cookies["sid"];
+    if (!sid) return undefined;
+    const userId = await storage.getUserIdBySession(sid);
+    if (!userId) return undefined;
+    return await storage.getUser(userId);
+  };
+
+  // Auth endpoints
+  app.get("/api/auth/me", async (req, res) => {
+    const user = await getUserFromRequest(req);
+    if (!user) return res.status(401).json({ message: "Unauthorized" });
+    const { passwordHash, ...safe } = user as any;
+    res.json(safe);
+  });
+
+  app.post("/api/auth/register", async (req, res) => {
+    try {
+      const body = req.body;
+      const parsed = insertUserSchema.extend({ password: z.string() }).parse(body as any);
+      const existing = await storage.findUserByEmail(parsed.email);
+      if (existing) {
+        return res.status(400).json({ message: "Email already registered" });
+      }
+      const user = await storage.createUser(parsed as any);
+      const sid = await storage.createSession(user.id);
+      setSessionCookie(res, sid);
+      const { passwordHash, ...safe } = user as any;
+      res.status(201).json(safe);
+    } catch (error: any) {
+      res.status(400).json({ message: "Invalid user data", error: error.message });
+    }
+  });
+
+  app.post("/api/auth/login", async (req, res) => {
+    const { email, password } = req.body as { email?: string; password?: string };
+    if (!email || !password) return res.status(400).json({ message: "Email and password required" });
+    const user = await storage.findUserByEmail(email);
+    if (!user) return res.status(400).json({ message: "Invalid credentials" });
+    const hash = createHash("sha256").update(password).digest("hex");
+    if (user.passwordHash !== hash) return res.status(400).json({ message: "Invalid credentials" });
+    const sid = await storage.createSession(user.id);
+    setSessionCookie(res, sid);
+    const { passwordHash, ...safe } = user as any;
+    res.json(safe);
+  });
+
+  app.post("/api/auth/logout", async (req, res) => {
+    const cookies = parseCookies(req.headers.cookie);
+    const sid = cookies["sid"];
+    if (sid) await storage.deleteSession(sid);
+    res.setHeader("Set-Cookie", "sid=; Path=/; Max-Age=0; SameSite=Lax");
+    res.json({ success: true });
   });
 
   // Products endpoints
@@ -18,6 +95,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(products);
     } catch (error: any) {
       res.status(500).json({ message: "Error fetching products", error: error.message });
+    }
+  });
+
+  // Search endpoint
+  app.get("/api/search", async (req, res) => {
+    try {
+      const q = (req.query.q as string | undefined)?.trim() || "";
+      if (!q) return res.json([]);
+      const products = await storage.getProducts();
+      const query = q.toLowerCase();
+
+      const scored = products
+        .map((p) => {
+          const hayName = p.name.toLowerCase();
+          const hayDesc = p.description.toLowerCase();
+          const hayMat = p.material.toLowerCase();
+          const hayCat = p.category.toLowerCase();
+
+          let score = 0;
+          // Category boost for common keywords
+          if (query.startsWith("ring")) score += hayCat === "rings" ? 5 : 0;
+          if (query.startsWith("neck")) score += hayCat === "necklaces" ? 5 : 0;
+          if (query.startsWith("brace")) score += hayCat === "bracelets" ? 5 : 0;
+          if (query.startsWith("ear")) score += hayCat === "earrings" ? 5 : 0;
+
+          // Name prefix and inclusion boosts
+          if (hayName.startsWith(query)) score += 6;
+          if (hayName.includes(query)) score += 4;
+
+          // Material and description light boosts
+          if (hayMat.includes(query)) score += 2;
+          if (hayDesc.includes(query)) score += 1;
+
+          // Exact category keyword match
+          if (["rings","ring","necklace","necklaces","bracelet","bracelets","earring","earrings"].includes(query)) {
+            const norm = query.endsWith("s") ? query : `${query}s`;
+            if (hayCat === norm) score += 8;
+          }
+
+          return { p, score };
+        })
+        .filter((x) => x.score > 0)
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 8)
+        .map((x) => x.p);
+
+      res.json(scored);
+    } catch (error: any) {
+      res.status(500).json({ message: "Error searching products", error: error.message });
     }
   });
 
@@ -73,6 +199,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       res.status(400).json({ message: "Invalid order data", error: error.message });
     }
+  });
+
+  // Admin summary
+  app.get("/api/admin/summary", async (req, res) => {
+    const user = await getUserFromRequest(req);
+    if (!user || user.role !== "admin") return res.status(401).json({ message: "Unauthorized" });
+    const products = await storage.getProducts();
+    const orders = await storage.getOrders();
+    const revenue = orders.reduce((sum, o) => sum + o.totalAmount, 0);
+    res.json({
+      products: products.length,
+      orders: orders.length,
+      revenue,
+    });
   });
 
   app.patch("/api/orders/:id/status", async (req, res) => {

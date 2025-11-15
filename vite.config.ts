@@ -34,6 +34,8 @@ export default defineConfig({
   server: {
     fs: {
       strict: true,
+      // Allow serving/importing files from the external attached_assets folder
+      allow: [path.resolve(import.meta.dirname, "attached_assets")],
       deny: ["**/.*"],
     },
   },

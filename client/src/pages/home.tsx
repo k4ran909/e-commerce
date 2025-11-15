@@ -3,6 +3,10 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ArrowRight } from "lucide-react";
 import heroImage from "@assets/generated_images/Elegant_hero_lifestyle_jewelry_photo_1ea3bf8d.png";
+import ringsImage from "@assets/generated_images/Rose_gold_diamond_ring_406b3b84.png";
+import necklacesImage from "@assets/generated_images/Gold_pendant_necklace_84aa4494.png";
+import braceletsImage from "@assets/generated_images/Silver_charm_bracelet_db9c5a93.png";
+import earringsImage from "@assets/generated_images/Pearl_stud_earrings_00219806.png";
 
 export default function Home() {
   const categories = [
@@ -11,24 +15,28 @@ export default function Home() {
       description: "Timeless elegance for every moment",
       href: "/products?category=rings",
       testId: "card-category-rings",
+      image: ringsImage,
     },
     {
       name: "Necklaces",
       description: "Graceful pieces to elevate your style",
       href: "/products?category=necklaces",
       testId: "card-category-necklaces",
+      image: necklacesImage,
     },
     {
       name: "Bracelets",
       description: "Delicate charm for your wrist",
       href: "/products?category=bracelets",
       testId: "card-category-bracelets",
+      image: braceletsImage,
     },
     {
       name: "Earrings",
       description: "Stunning accents for every occasion",
       href: "/products?category=earrings",
       testId: "card-category-earrings",
+      image: earringsImage,
     },
   ];
 
@@ -89,7 +97,14 @@ export default function Home() {
                   className="group overflow-hidden hover-elevate active-elevate-2 cursor-pointer transition-all duration-300 h-full"
                 >
                   <div className="aspect-square bg-accent relative overflow-hidden">
-                    <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-primary/20 group-hover:from-primary/10 group-hover:to-primary/30 transition-all duration-300" />
+                    {category.image && (
+                      <img
+                        src={category.image}
+                        alt={`${category.name} category`}
+                        className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+                      />
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-br from-black/20 via-black/10 to-black/20 group-hover:from-black/10 group-hover:via-black/5 group-hover:to-black/10 transition-all duration-300" />
                   </div>
                   <div className="p-6 text-center">
                     <h3 className="font-serif text-xl font-medium mb-2">

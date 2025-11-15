@@ -97,7 +97,7 @@ export default function ProductDetail() {
               <img
                 src={product.imageUrl}
                 alt={product.name}
-                className="h-full w-full object-cover"
+                className="h-full w-full object-contain"
                 data-testid="img-product-main"
               />
             </div>
@@ -111,7 +111,7 @@ export default function ProductDetail() {
                     <img
                       src={img}
                       alt={`${product.name} view ${idx + 2}`}
-                      className="h-full w-full object-cover"
+                      className="h-full w-full object-contain"
                     />
                   </div>
                 ))}

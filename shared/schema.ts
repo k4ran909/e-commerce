@@ -3,6 +3,25 @@ import { pgTable, text, varchar, integer, boolean, timestamp } from "drizzle-orm
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+// Users
+export const users = pgTable("users", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  email: text("email").notNull(),
+  passwordHash: text("password_hash").notNull(),
+  role: text("role").notNull().default("user"), // "user" | "admin"
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertUserSchema = createInsertSchema(users).omit({
+  id: true,
+  passwordHash: true,
+  createdAt: true,
+});
+
+export type InsertUser = z.infer<typeof insertUserSchema> & { password: string };
+export type User = typeof users.$inferSelect;
+
 export const products = pgTable("products", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),

@@ -4,22 +4,38 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Product } from "@shared/schema";
-import { useState, useEffect } from "react";
-import { useLocation } from "wouter";
+import { useState, useEffect, useMemo } from "react";
+import { useLocation, useRoute } from "wouter";
 
 export default function Products() {
-  const [location] = useLocation();
-  const searchParams = new URLSearchParams(location.split("?")[1] || "");
-  const categoryParam = searchParams.get("category");
+  const [location, setLocation] = useLocation();
+  const [matchCat, params] = useRoute("/products/category/:category");
+  const [searchStr, setSearchStr] = useState<string>(typeof window !== "undefined" ? window.location.search : "");
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setSearchStr(window.location.search);
+    }
+  }, [location]);
+  const urlParams = useMemo(() => new URLSearchParams(searchStr), [searchStr]);
+  const categoryFromPath = matchCat ? params?.category ?? null : null;
+  const categoryParam = categoryFromPath || urlParams.get("category");
+  const qParam = urlParams.get("q")?.trim() || "";
   
   const [selectedCategory, setSelectedCategory] = useState<string>(categoryParam || "all");
   const [sortBy, setSortBy] = useState<string>("featured");
+  const [query, setQuery] = useState<string>(qParam);
 
   useEffect(() => {
     if (categoryParam) {
       setSelectedCategory(categoryParam);
+    } else {
+      setSelectedCategory("all");
     }
   }, [categoryParam]);
+
+  useEffect(() => {
+    setQuery(qParam);
+  }, [qParam]);
 
   const { data: products, isLoading } = useQuery<Product[]>({
     queryKey: ["/api/products"],
@@ -33,14 +49,22 @@ export default function Products() {
     { value: "earrings", label: "Earrings" },
   ];
 
-  const filteredProducts = products
-    ?.filter((p) => selectedCategory === "all" || p.category === selectedCategory)
-    .sort((a, b) => {
+  const filteredProducts = useMemo(() => {
+    const base = (products || [])
+      .filter((p) => selectedCategory === "all" || p.category === selectedCategory)
+      .filter((p) => {
+        if (!query) return true;
+        const hay = `${p.name} ${p.description} ${p.material}`.toLowerCase();
+        return hay.includes(query.toLowerCase());
+      });
+
+    return base.sort((a, b) => {
       if (sortBy === "price-asc") return a.price - b.price;
       if (sortBy === "price-desc") return b.price - a.price;
       if (sortBy === "name") return a.name.localeCompare(b.name);
       return 0;
-    }) || [];
+    });
+  }, [products, selectedCategory, sortBy, query]);
 
   return (
     <div className="min-h-screen bg-background py-8 lg:py-12">
@@ -48,8 +72,10 @@ export default function Products() {
         {/* Header */}
         <div className="mb-8">
           <h1 className="font-serif text-3xl lg:text-4xl font-light mb-2">
-            {selectedCategory === "all"
-              ? "All Jewelry"
+            {query
+              ? `Results for "${query}"`
+              : selectedCategory === "all"
+              ? "Products"
               : categories.find((c) => c.value === selectedCategory)?.label}
           </h1>
           <p className="text-muted-foreground">
@@ -64,7 +90,17 @@ export default function Products() {
               <Button
                 key={category.value}
                 variant={selectedCategory === category.value ? "default" : "outline"}
-                onClick={() => setSelectedCategory(category.value)}
+                  onClick={() => {
+                    const value = category.value;
+                    setSelectedCategory(value);
+                    const params = new URLSearchParams(searchStr || "");
+                    const q = params.get("q");
+                    if (value === "all") {
+                      setLocation(`/products${q ? `?q=${encodeURIComponent(q)}` : ""}`);
+                    } else {
+                      setLocation(`/products/category/${value}${q ? `?q=${encodeURIComponent(q)}` : ""}`);
+                    }
+                  }}
                 data-testid={`button-category-${category.value}`}
               >
                 {category.label}
@@ -100,7 +136,7 @@ export default function Products() {
         ) : filteredProducts.length === 0 ? (
           <div className="text-center py-12">
             <p className="text-muted-foreground text-lg">
-              No products found in this category
+              {query ? "No products match your search" : "No products found in this category"}
             </p>
           </div>
         ) : (

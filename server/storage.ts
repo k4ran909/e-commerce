@@ -1,12 +1,12 @@
 import {
   type Product,
   type InsertProduct,
-  type CartItem,
-  type InsertCartItem,
   type Order,
   type InsertOrder,
+  type User,
+  type InsertUser,
 } from "@shared/schema";
-import { randomUUID } from "crypto";
+import { createHash, randomUUID } from "crypto";
 
 export interface IStorage {
   // Products
@@ -19,25 +19,85 @@ export interface IStorage {
   getOrder(id: string): Promise<Order | undefined>;
   createOrder(order: InsertOrder): Promise<Order>;
   updateOrderStatus(id: string, status: string): Promise<Order | undefined>;
+
+  // Users
+  createUser(user: InsertUser): Promise<User>;
+  findUserByEmail(email: string): Promise<User | undefined>;
+  getUser(id: string): Promise<User | undefined>;
+
+  // Sessions
+  createSession(userId: string): Promise<string>; // returns sessionId
+  getUserIdBySession(sessionId: string): Promise<string | undefined>;
+  deleteSession(sessionId: string): Promise<void>;
 }
 
 export class MemStorage implements IStorage {
   private products: Map<string, Product>;
   private orders: Map<string, Order>;
+  private users: Map<string, User>;
+  private sessions: Map<string, string>; // sid -> userId
 
   constructor() {
     this.products = new Map();
     this.orders = new Map();
+    this.users = new Map();
+    this.sessions = new Map();
     this.seedProducts();
+    this.seedAdminUser();
   }
 
   private seedProducts() {
-    const sampleProducts: InsertProduct[] = [
+    // Deterministic pseudo-random to keep prices stable across restarts
+    const rand01 = (key: string) => {
+      const hex = createHash("sha256").update(key).digest("hex").slice(0, 8);
+      const n = parseInt(hex, 16);
+      return (n >>> 0) / 0xffffffff;
+    };
+
+    // Base price ranges per category (in IDR)
+    const categoryRange: Record<string, { min: number; max: number }> = {
+      rings: { min: 1_500_000, max: 3_500_000 },
+      necklaces: { min: 1_300_000, max: 2_000_000 },
+      bracelets: { min: 750_000, max: 1_300_000 },
+      earrings: { min: 680_000, max: 1_200_000 },
+    };
+
+    // Compute price from category and material; output cents
+    const computePriceCents = (name: string, category: string, material: string): number => {
+      const range = categoryRange[category] ?? { min: 1_000_000, max: 2_000_000 };
+      const r = rand01(`${name}|${category}|${material}`);
+      let base = range.min + r * (range.max - range.min);
+      const m = material.toLowerCase();
+      let factor = 1;
+      if (m.includes("diamond")) factor *= 1.5;
+      if (m.includes("pearl")) factor *= 1.1;
+      if (m.includes("cubic") || m.includes("zirconia")) factor *= 1.05;
+      if (m.includes("onyx")) factor *= 1.05;
+      if (m.includes("glass")) factor *= 0.85;
+      if (m.includes("stainless")) factor *= 0.8;
+      if (m.includes("silver")) factor *= 0.8;
+      if (m.includes("vermeil")) factor *= 1.1;
+      if (m.includes("18k")) factor *= 1.2;
+      if (m.includes("14k")) factor *= 1.15;
+      if (m.includes("gold plated")) factor *= 1.05;
+
+      let priced = base * factor;
+      // Clamp to category band
+      priced = Math.min(range.max, Math.max(range.min, priced));
+      // Round to nearest 50,000 IDR
+      const step = 50_000;
+      priced = Math.round(priced / step) * step;
+      // Return cents
+      return Math.round(priced * 100);
+    };
+
+    type SeedProduct = Omit<InsertProduct, "price">;
+    const baseProducts: SeedProduct[] = [
+      // Existing unique products
       {
         name: "Rose Gold Diamond Ring",
         description:
           "Exquisite handcrafted rose gold ring featuring a brilliant-cut diamond. Perfect for engagements or special occasions. Each piece is carefully crafted by skilled artisans.",
-        price: 2500000,
         category: "rings",
         imageUrl: "/assets/generated_images/Rose_gold_diamond_ring_406b3b84.png",
         images: [
@@ -53,7 +113,6 @@ export class MemStorage implements IStorage {
         name: "Gold Pendant Necklace",
         description:
           "Delicate gold chain necklace with an elegant pendant. A timeless piece that complements any outfit. Crafted from premium materials.",
-        price: 1800000,
         category: "necklaces",
         imageUrl: "/assets/generated_images/Gold_pendant_necklace_84aa4494.png",
         images: [
@@ -68,7 +127,6 @@ export class MemStorage implements IStorage {
         name: "Silver Charm Bracelet",
         description:
           "Elegant sterling silver bracelet with customizable charm options. A perfect gift for loved ones. Each charm tells a unique story.",
-        price: 950000,
         category: "bracelets",
         imageUrl: "/assets/generated_images/Silver_charm_bracelet_db9c5a93.png",
         images: [
@@ -84,7 +142,6 @@ export class MemStorage implements IStorage {
         name: "Pearl Stud Earrings",
         description:
           "Classic pearl earrings set in premium metal. Timeless elegance for everyday wear. Perfect for both casual and formal occasions.",
-        price: 750000,
         category: "earrings",
         imageUrl: "/assets/generated_images/Pearl_stud_earrings_00219806.png",
         images: [
@@ -99,7 +156,6 @@ export class MemStorage implements IStorage {
         name: "Rose Gold Stackable Rings Set",
         description:
           "Set of three delicate stackable rings in rose gold. Mix and match for a personalized look. Each ring is designed to complement the others beautifully.",
-        price: 1650000,
         category: "rings",
         imageUrl: "/assets/generated_images/Rose_gold_stackable_rings_c4608c25.png",
         images: [
@@ -115,7 +171,6 @@ export class MemStorage implements IStorage {
         name: "Gold Hoop Earrings",
         description:
           "Modern hoop earrings in polished gold. Versatile and sophisticated for any occasion. A must-have addition to your jewelry collection.",
-        price: 1200000,
         category: "earrings",
         imageUrl: "/assets/generated_images/Gold_hoop_earrings_86358172.png",
         images: [
@@ -130,7 +185,6 @@ export class MemStorage implements IStorage {
         name: "Silver Infinity Necklace",
         description:
           "Symbolic infinity pendant on a delicate silver chain. Represents eternal love and friendship. A meaningful gift for someone special.",
-        price: 850000,
         category: "necklaces",
         imageUrl: "/assets/generated_images/Silver_infinity_necklace_eb3fd355.png",
         images: [
@@ -141,28 +195,285 @@ export class MemStorage implements IStorage {
         isPreOrder: false,
         inStock: true,
       },
+
+      // New uploaded products (17 items)
+      // Bracelets (6)
       {
-        name: "Diamond Tennis Bracelet",
+        name: "Aurora Twist Bracelet",
         description:
-          "Luxurious tennis bracelet featuring brilliant diamonds. A statement piece for special events. Expertly crafted for maximum sparkle.",
-        price: 3500000,
+          "A sleek twisted bracelet with a mirror polish finish. Designed for everyday elegance and comfortable wear.",
         category: "bracelets",
-        imageUrl: "/assets/generated_images/Silver_charm_bracelet_db9c5a93.png",
+        imageUrl: "/assets/generated_images/bracelet_new_1.png",
         images: [
-          "/assets/generated_images/Silver_charm_bracelet_db9c5a93.png",
-          "/assets/generated_images/Silver_charm_bracelet_db9c5a93.png",
+          "/assets/generated_images/bracelet_new_1.png",
         ],
-        material: "18K White Gold, Diamonds",
+        material: "Sterling Silver",
+        isPreOrder: false,
+        inStock: true,
+        sizes: ["S", "M", "L"],
+      },
+      {
+        name: "Serene Link Bracelet",
+        description:
+          "Delicate link bracelet that layers beautifully with other pieces. Hand-assembled for a fluid drape.",
+        category: "bracelets",
+        imageUrl: "/assets/generated_images/bracelet_new_2.png",
+        images: [
+          "/assets/generated_images/bracelet_new_2.png",
+        ],
+        material: "14K Gold Vermeil",
+        isPreOrder: false,
+        inStock: true,
+        sizes: ["S", "M", "L"],
+      },
+      {
+        name: "Opaline Bead Bracelet",
+        description:
+          "Soft opaline beads strung on a durable cord, finished with a refined clasp. A gentle pop of color.",
+        category: "bracelets",
+        imageUrl: "/assets/generated_images/bracelet_new_3.png",
+        images: [
+          "/assets/generated_images/bracelet_new_3.png",
+        ],
+        material: "Glass Beads, Stainless Clasp",
+        isPreOrder: false,
+        inStock: true,
+        sizes: ["S", "M", "L"],
+      },
+      {
+        name: "Linea Cuff Bracelet",
+        description:
+          "Minimalist cuff with a gentle oval profile. Adjustable fit and lightly brushed finish.",
+        category: "bracelets",
+        imageUrl: "/assets/generated_images/bracelet_new_4.png",
+        images: [
+          "/assets/generated_images/bracelet_new_4.png",
+        ],
+        material: "18K Gold Plated Brass",
         isPreOrder: true,
         inStock: false,
         sizes: ["S", "M", "L"],
       },
+      {
+        name: "Celeste Chain Bracelet",
+        description:
+          "Fine chain bracelet that catches the light with every move. Lightweight and enduring.",
+        category: "bracelets",
+        imageUrl: "/assets/generated_images/bracelet_new_5.png",
+        images: [
+          "/assets/generated_images/bracelet_new_5.png",
+        ],
+        material: "Stainless Steel, PVD Gold",
+        isPreOrder: false,
+        inStock: true,
+        sizes: ["S", "M", "L"],
+      },
+      {
+        name: "Noir Bar Bracelet",
+        description:
+          "A modern bar centerpiece on a refined chain. Understated and versatile for daily wear.",
+        category: "bracelets",
+        imageUrl: "/assets/generated_images/bracelet_new_6.png",
+        images: [
+          "/assets/generated_images/bracelet_new_6.png",
+        ],
+        material: "Black Onyx, Stainless Steel",
+        isPreOrder: false,
+        inStock: true,
+        sizes: ["S", "M", "L"],
+      },
+
+      // Earrings (3)
+      {
+        name: "Luna Drop Earrings",
+        description:
+          "Graceful drop earrings with a gentle arc silhouette. Polished to a mirror sheen.",
+        category: "earrings",
+        imageUrl: "/assets/generated_images/earring_new_1.png",
+        images: [
+          "/assets/generated_images/earring_new_1.png",
+        ],
+        material: "Sterling Silver",
+        isPreOrder: false,
+        inStock: true,
+      },
+      {
+        name: "Halo Stud Earrings",
+        description:
+          "Round studs framed by a subtle halo for added brilliance. A refined everyday pair.",
+        category: "earrings",
+        imageUrl: "/assets/generated_images/earring_new_2.png",
+        images: [
+          "/assets/generated_images/earring_new_2.png",
+        ],
+        material: "14K Gold Vermeil",
+        isPreOrder: false,
+        inStock: true,
+      },
+      {
+        name: "Arc Hoop Earrings",
+        description:
+          "Sculpted hoops with a tapered profile. Lightweight for comfortable, all-day wear.",
+        category: "earrings",
+        imageUrl: "/assets/generated_images/earring_new_3.png",
+        images: [
+          "/assets/generated_images/earring_new_3.png",
+        ],
+        material: "18K Gold Plated Brass",
+        isPreOrder: true,
+        inStock: false,
+      },
+
+      // Necklaces (3)
+      {
+        name: "Solitaire Pendant Necklace",
+        description:
+          "Refined solitaire pendant suspended on a fine chain. Effortlessly elegant.",
+        category: "necklaces",
+        imageUrl: "/assets/generated_images/necklace_new_1.jpg",
+        images: [
+          "/assets/generated_images/necklace_new_1.jpg",
+        ],
+        material: "18K Yellow Gold",
+        isPreOrder: false,
+        inStock: true,
+      },
+      {
+        name: "Cascade Y Necklace",
+        description:
+          "Y-shaped necklace with a delicate vertical drop. Designed to elongate the neckline.",
+        category: "necklaces",
+        imageUrl: "/assets/generated_images/necklace_new_2.jpg",
+        images: [
+          "/assets/generated_images/necklace_new_2.jpg",
+        ],
+        material: "Sterling Silver",
+        isPreOrder: false,
+        inStock: true,
+      },
+      {
+        name: "Nova Lariat Necklace",
+        description:
+          "Minimal lariat necklace featuring a slender bar accent. Perfect for layering.",
+        category: "necklaces",
+        imageUrl: "/assets/generated_images/necklace_new_3.jpg",
+        images: [
+          "/assets/generated_images/necklace_new_3.jpg",
+        ],
+        material: "14K Gold Vermeil",
+        isPreOrder: true,
+        inStock: false,
+      },
+
+      // Rings (5)
+      {
+        name: "Mira Signet Ring",
+        description:
+          "A modern take on the classic signet ring with a smooth, bold face.",
+        category: "rings",
+        imageUrl: "/assets/generated_images/ring_new_1.png",
+        images: [
+          "/assets/generated_images/ring_new_1.png",
+        ],
+        material: "14K Gold Vermeil",
+        isPreOrder: false,
+        inStock: true,
+        sizes: ["5", "6", "7", "8", "9"],
+      },
+      {
+        name: "Astra Solitaire Ring",
+        description:
+          "A slender band crowned with a brilliant center stone. Romantic and timeless.",
+        category: "rings",
+        imageUrl: "/assets/generated_images/ring_new_2.png",
+        images: [
+          "/assets/generated_images/ring_new_2.png",
+        ],
+        material: "14K Rose Gold",
+        isPreOrder: false,
+        inStock: true,
+        sizes: ["5", "6", "7", "8", "9"],
+      },
+      {
+        name: "Vela Stack Ring",
+        description:
+          "Slim stacking ring designed to pair beautifully with your daily pieces.",
+        category: "rings",
+        imageUrl: "/assets/generated_images/ring_new_3.png",
+        images: [
+          "/assets/generated_images/ring_new_3.png",
+        ],
+        material: "Sterling Silver",
+        isPreOrder: false,
+        inStock: true,
+        sizes: ["5", "6", "7", "8", "9"],
+      },
+      {
+        name: "Orbit Duo Ring",
+        description:
+          "Two interlocking bands symbolizing balance and unity. A sculptural statement.",
+        category: "rings",
+        imageUrl: "/assets/generated_images/ring_new_4.png",
+        images: [
+          "/assets/generated_images/ring_new_4.png",
+        ],
+        material: "18K Gold Plated Brass",
+        isPreOrder: true,
+        inStock: false,
+        sizes: ["5", "6", "7", "8", "9"],
+      },
+      {
+        name: "Seraphine Pavé Ring",
+        description:
+          "Delicate pavé band that adds a touch of sparkle to any stack.",
+        category: "rings",
+        imageUrl: "/assets/generated_images/ring_new_5.png",
+        images: [
+          "/assets/generated_images/ring_new_5.png",
+        ],
+        material: "18K Yellow Gold, Cubic Zirconia",
+        isPreOrder: false,
+        inStock: true,
+        sizes: ["5", "6", "7", "8", "9"],
+      },
     ];
+
+    const sampleProducts: InsertProduct[] = baseProducts.map((bp) => ({
+      ...bp,
+      price: computePriceCents(bp.name, bp.category, bp.material),
+    }));
 
     sampleProducts.forEach((product) => {
       const id = randomUUID();
-      this.products.set(id, { ...product, id });
+      const prod: Product = {
+        id,
+        name: product.name,
+        description: product.description,
+        price: product.price,
+        category: product.category,
+        imageUrl: product.imageUrl,
+        images: product.images,
+        material: product.material,
+        isPreOrder: product.isPreOrder ?? false,
+        inStock: product.inStock ?? true,
+        sizes: (product as any).sizes ?? null,
+      };
+      this.products.set(id, prod);
     });
+  }
+
+  private seedAdminUser() {
+    const id = randomUUID();
+    const admin: User = {
+      id,
+      name: "Administrator",
+      email: "admin@lumiere.test",
+      passwordHash: createHash("sha256").update("admin123").digest("hex"),
+      role: "admin",
+      // @ts-ignore createdAt not used in mem
+      createdAt: new Date(),
+    } as User;
+    this.users.set(id, admin);
   }
 
   // Products
@@ -176,7 +487,19 @@ export class MemStorage implements IStorage {
 
   async createProduct(insertProduct: InsertProduct): Promise<Product> {
     const id = randomUUID();
-    const product: Product = { ...insertProduct, id };
+    const product: Product = {
+      id,
+      name: insertProduct.name,
+      description: insertProduct.description,
+      price: insertProduct.price,
+      category: insertProduct.category,
+      imageUrl: insertProduct.imageUrl,
+      images: insertProduct.images,
+      material: insertProduct.material,
+      isPreOrder: insertProduct.isPreOrder ?? false,
+      inStock: insertProduct.inStock ?? true,
+      sizes: (insertProduct as any).sizes ?? null,
+    };
     this.products.set(id, product);
     return product;
   }
@@ -193,8 +516,19 @@ export class MemStorage implements IStorage {
   async createOrder(insertOrder: InsertOrder): Promise<Order> {
     const id = randomUUID();
     const order: Order = {
-      ...insertOrder,
       id,
+      customerName: insertOrder.customerName,
+      customerEmail: insertOrder.customerEmail,
+      customerPhone: insertOrder.customerPhone,
+      shippingAddress: insertOrder.shippingAddress,
+      shippingCity: insertOrder.shippingCity,
+      shippingPostalCode: insertOrder.shippingPostalCode,
+      shippingCountry: insertOrder.shippingCountry,
+      items: insertOrder.items,
+      totalAmount: insertOrder.totalAmount,
+      status: (insertOrder as any).status ?? "pending",
+      isPreOrder: (insertOrder as any).isPreOrder ?? false,
+      paymentStatus: (insertOrder as any).paymentStatus ?? "pending",
       createdAt: new Date(),
     };
     this.orders.set(id, order);
@@ -211,6 +545,50 @@ export class MemStorage implements IStorage {
     const updated = { ...order, status };
     this.orders.set(id, updated);
     return updated;
+  }
+
+  // Users
+  async createUser(user: InsertUser): Promise<User> {
+    const id = randomUUID();
+    const u: User = {
+      id,
+      name: user.name,
+      email: user.email.toLowerCase(),
+      passwordHash: createHash("sha256").update(user.password).digest("hex"),
+      role: user.role ?? "user",
+      // @ts-ignore
+      createdAt: new Date(),
+    } as User;
+    this.users.set(id, u);
+    return u;
+  }
+
+  async findUserByEmail(email: string): Promise<User | undefined> {
+    email = email.toLowerCase();
+    let found: User | undefined = undefined;
+    this.users.forEach((u) => {
+      if (!found && u.email === email) found = u;
+    });
+    return found;
+  }
+
+  async getUser(id: string): Promise<User | undefined> {
+    return this.users.get(id);
+  }
+
+  // Sessions
+  async createSession(userId: string): Promise<string> {
+    const sid = randomUUID();
+    this.sessions.set(sid, userId);
+    return sid;
+  }
+
+  async getUserIdBySession(sessionId: string): Promise<string | undefined> {
+    return this.sessions.get(sessionId);
+  }
+
+  async deleteSession(sessionId: string): Promise<void> {
+    this.sessions.delete(sessionId);
   }
 }
 
