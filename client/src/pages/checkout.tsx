@@ -14,7 +14,7 @@ import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Link, useLocation } from "wouter";
-import { ArrowLeft, CreditCard, Shield } from "lucide-react";
+import { ArrowLeft, CreditCard, Shield, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/lib/auth-context";
 
@@ -35,6 +35,50 @@ export default function Checkout() {
       setLocation("/login?returnTo=%2Fcheckout");
     }
   }, [loading, me, setLocation, toast]);
+
+  // Warn user if navigating away while order is processing
+  useEffect(() => {
+    if (!isProcessing) return;
+
+    const message = "Your order is processing. Are you sure you want to leave this page?";
+
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = ""; // Triggers native prompt
+      return "";
+    };
+
+    const onClick = (e: MouseEvent) => {
+      const target = e.target as Element | null;
+      if (!target) return;
+      const anchor = (target.closest && target.closest("a[href]")) as HTMLAnchorElement | null;
+      if (!anchor) return;
+      const url = new URL(anchor.href, window.location.href);
+      const sameOrigin = url.origin === window.location.origin;
+      if (!sameOrigin) return; // let external links proceed (browser will warn via beforeunload)
+      e.preventDefault();
+      const proceed = window.confirm(message);
+      if (proceed) setLocation(url.pathname + url.search + url.hash);
+    };
+
+    const onPopState = () => {
+      const proceed = window.confirm(message);
+      if (!proceed) {
+        // Re-push current location to effectively cancel the back/forward navigation
+        history.pushState(null, "", window.location.href);
+      }
+    };
+
+    window.addEventListener("beforeunload", onBeforeUnload);
+    window.addEventListener("click", onClick, true);
+    window.addEventListener("popstate", onPopState);
+
+    return () => {
+      window.removeEventListener("beforeunload", onBeforeUnload);
+      window.removeEventListener("click", onClick, true);
+      window.removeEventListener("popstate", onPopState);
+    };
+  }, [isProcessing, setLocation]);
 
   // Create a custom schema for the form that excludes items and totalAmount
   const checkoutFormSchema = insertOrderSchema.omit({ items: true, totalAmount: true });
@@ -166,7 +210,8 @@ export default function Checkout() {
           {/* Checkout Form */}
           <div className="lg:col-span-2">
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <form onSubmit={form.handleSubmit(onSubmit)}>
+                <fieldset disabled={isProcessing} aria-busy={isProcessing} className={`space-y-6 ${isProcessing ? "opacity-60 pointer-events-none" : ""}`}>
                 <Card className="p-6">
                   <h2 className="font-serif text-xl mb-4">Contact Information</h2>
                   <div className="space-y-4">
@@ -301,16 +346,17 @@ export default function Checkout() {
                     </div>
                   </div>
                 </Card>
-
-                <Button
-                  type="submit"
-                  size="lg"
-                  className="w-full"
-                  disabled={isProcessing}
-                  data-testid="button-place-order"
-                >
-                  {isProcessing ? "Processing..." : "Place Order"}
-                </Button>
+                  <Button
+                    type="submit"
+                    size="lg"
+                    className="w-full"
+                    disabled={isProcessing}
+                    data-testid="button-place-order"
+                  >
+                    {isProcessing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    {isProcessing ? "Processing..." : "Place Order"}
+                  </Button>
+                </fieldset>
               </form>
             </Form>
           </div>
