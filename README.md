@@ -91,6 +91,7 @@ Path aliases (see `vite.config.ts`): `@` -> `client/src`, `@shared` -> `shared`,
   - Data fetching: React Query (`client/src/lib/queryClient.ts`)
 - UI: Tailwind + Radix UI components (`client/src/components/ui/*`)
   - Toasts are dismissible and auto‑hide quickly to avoid blocking UI
+  - Confirm dialog: `client/src/components/ui/confirm-dialog.tsx` — centered modal with portal + overlay; use to confirm destructive or sensitive actions (e.g., logout)
 
 ---
 
@@ -145,6 +146,57 @@ TypeScript types and Zod insert schemas are defined for future Postgres use.
 Currency: All monetary values are stored in IDR cents. Format on the client via `Intl.NumberFormat("id-ID")`.
 
 ---
+
+## ERD Cheat Sheet (for ERD Owners)
+The current implementation uses in‑memory stores and a simplified schema. Relationships are mostly logical (no FKs yet). Use this as guidance when drawing an ERD.
+
+Mermaid (conceptual):
+```mermaid
+erDiagram
+  USER ||--o{ ORDER : places
+  ORDER }o--o{ PRODUCT : contains
+  USER ||--o{ SESSION : has
+
+  USER {
+    string id
+    string name
+    string email
+    string role
+    date createdAt
+  }
+  PRODUCT {
+    string id
+    string name
+    string description
+    int price_cents
+    string category
+    string material
+    bool inStock
+  }
+  ORDER {
+    string id
+    string customerName
+    string customerEmail
+    string shippingAddress
+    string shippingCity
+    string shippingPostalCode
+    string shippingCountry
+    json items
+    int totalAmount_cents
+    string status
+    string paymentStatus
+    date createdAt
+  }
+  SESSION {
+    string sid
+    string userId
+  }
+```
+
+Notes for ERD:
+- Orders currently embed `items` as JSON; there is no `order_items` table. When normalizing, introduce `ORDER_ITEM` with FK(`order_id`) and FK(`product_id`).
+- Sessions are stored in memory and keyed by `sid -> userId` (not persisted). If modeling persistence, add a `sessions` table and relate to `USER`.
+- A `cart_items` schema exists for future use but is not wired in the current app flow.
 
 ## API Examples
 ```zsh
@@ -302,10 +354,13 @@ flowchart TB
 ---
 
 ## Contributors
-Team project. Please add yourself here:
-- Backend: routes, storage, auth
-- Frontend: pages, components, styling
-- Docs: README, flowchart, DFD
+Group 1:
+- Reynaldi Siregar
+- Arif Maulana
+- R Muhammad Haris
+- Aji malela
+- Ardika Zaki
+- Teuku Rifky
 
 ---
 

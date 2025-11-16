@@ -17,6 +17,7 @@ import UserDashboard from "@/pages/user-dashboard";
 import AdminDashboard from "@/pages/admin-dashboard";
 import Login from "@/pages/login";
 import Register from "@/pages/register";
+import { ThemeProvider } from "@/lib/theme-context";
 
 function Router() {
   return (
@@ -40,18 +41,20 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <AuthProvider>
-          <CartProvider>
-            <div className="min-h-screen flex flex-col">
-              <Header />
-              <main className="flex-1">
-                <Router />
-              </main>
-              <CartSheet />
-            </div>
-            <Toaster />
-          </CartProvider>
-        </AuthProvider>
+        <ThemeProvider>
+          <AuthProvider>
+            <CartProvider>
+              <div className="min-h-screen flex flex-col">
+                <Header />
+                <main className="flex-1">
+                  <Router />
+                </main>
+                <CartSheet />
+              </div>
+              <Toaster />
+            </CartProvider>
+          </AuthProvider>
+        </ThemeProvider>
       </TooltipProvider>
     </QueryClientProvider>
   );

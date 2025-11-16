@@ -1,7 +1,8 @@
 import { Link, useLocation } from "wouter";
-import { ShoppingBag, Search, Menu, X, User } from "lucide-react";
+import { ShoppingBag, Search, Menu, X, User, ChevronRight, ChevronLeft, Monitor, Moon, Sun, Check, Home as HomeIcon, Gem } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "./theme-toggle";
+import { useTheme } from "@/lib/theme-context";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useCart } from "@/lib/cart-context";
@@ -14,6 +15,7 @@ import { useQuery } from "@tanstack/react-query";
 export function Header() {
   const [location, setLocation] = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mobilePanel, setMobilePanel] = useState<'root' | 'theme'>('root');
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const { totalItems, toggleCart } = useCart();
@@ -180,61 +182,17 @@ export function Header() {
                 <span className="sr-only">Menu</span>
               </Button>
             </SheetTrigger>
-            <SheetContent side="right" className="w-72">
-              <nav className="flex flex-col gap-4 mt-8">
-                {navLinks.map((link) => (
-                  <Link key={link.path} href={link.path}>
-                    <Button
-                      variant="ghost"
-                      onClick={() => setMobileMenuOpen(false)}
-                      data-testid={`mobile-link-${link.label.toLowerCase().replace(/\s+/g, '-')}`}
-                      className={`w-full justify-start font-medium ${
-                        location === link.path ? "text-foreground" : "text-muted-foreground"
-                      }`}
-                    >
-                      {link.label}
-                    </Button>
-                  </Link>
-                ))}
-
-                {/* Theme toggle, styled like nav items */}
-                <ThemeToggle asListItem />
-              </nav>
-
-              <div className="mt-6 space-y-3">
-                {/* Mobile Profile / Auth */}
-                {!me ? (
-                  <Button
-                    className="w-full"
-                    onClick={() => {
-                      setMobileMenuOpen(false);
-                      const current = window.location.pathname + window.location.search;
-                      setLocation(`/login?returnTo=${encodeURIComponent(current)}`);
-                    }}
-                  >
-                    Sign in / Register
-                  </Button>
-                ) : (
-                  <div className="space-y-2">
-                    <div className="text-xs text-muted-foreground px-1">{me.email}</div>
-                    <Link href="/dashboard">
-                      <Button variant="ghost" className="w-full justify-start" onClick={() => setMobileMenuOpen(false)}>Account</Button>
-                    </Link>
-                    {me.role === "admin" && (
-                      <Link href="/admin">
-                        <Button variant="ghost" className="w-full justify-start" onClick={() => setMobileMenuOpen(false)}>Admin Dashboard</Button>
-                      </Link>
-                    )}
-                    <Button
-                      variant="destructive"
-                      className="w-full"
-                      onClick={() => { setMobileMenuOpen(false); logout(); }}
-                    >
-                      Logout
-                    </Button>
-                  </div>
-                )}
-              </div>
+            <SheetContent side="right" className="w-80 px-4 pt-14 pb-6">
+              <MobileMenuContent
+                panel={mobilePanel}
+                setPanel={setMobilePanel}
+                close={() => { setMobileMenuOpen(false); setMobilePanel('root'); }}
+                navLinks={navLinks}
+                me={me}
+                logout={logout}
+                location={location}
+                setLocation={setLocation}
+              />
             </SheetContent>
           </Sheet>
         </div>
@@ -293,6 +251,130 @@ export function Header() {
         />
       )}
     </>
+  );
+}
+
+// Mobile menu content with nested theme panel
+function MobileMenuContent({ panel, setPanel, close, navLinks, me, logout, location, setLocation }: {
+  panel: 'root' | 'theme';
+  setPanel: (p: 'root' | 'theme') => void;
+  close: () => void;
+  navLinks: { path: string; label: string }[];
+  me: { email: string; role: string } | null;
+  logout: () => void;
+  location: string;
+  setLocation: (path: string) => void;
+}) {
+  const { preference, activeTheme, setPreference } = useTheme();
+
+  if (panel === 'theme') {
+    const options: { key: 'system' | 'light' | 'dark'; label: string; icon: React.ReactNode }[] = [
+      { key: 'system', label: 'System', icon: <Monitor className="h-5 w-5" /> },
+      { key: 'light', label: 'Light', icon: <Sun className="h-5 w-5" /> },
+      { key: 'dark', label: 'Dark', icon: <Moon className="h-5 w-5" /> },
+    ];
+    return (
+      <div className="h-full flex flex-col">
+        <div className="flex items-center gap-2 h-14 border-b">
+          <Button variant="ghost" size="icon" onClick={() => setPanel('root')} className="rounded-full -ml-2">
+            <ChevronLeft className="h-5 w-5" />
+            <span className="sr-only">Back</span>
+          </Button>
+          <div className="text-sm font-medium">Theme</div>
+        </div>
+        <ul className="flex-1 overflow-auto py-2">
+          {options.map(opt => {
+            const active = preference === opt.key;
+            return (
+              <li key={opt.key}>
+                <button
+                  onClick={() => setPreference(opt.key)}
+                  className={`w-full flex items-center gap-3 px-4 py-3 text-sm text-left transition-colors ${active ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'}`}
+                >
+                  {opt.icon}
+                  <span className="flex-1">{opt.label}</span>
+                  {active && <Check className="h-4 w-4" />}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+        <div className="px-4 pb-4 text-xs text-muted-foreground">Active: {preference === 'system' ? `System (${activeTheme})` : preference}</div>
+      </div>
+    );
+  }
+
+  // Root panel
+  return (
+    <div className="h-full flex flex-col">
+      <ul className="flex-1 overflow-auto">
+        {/* Home */}
+        <li>
+          <Link href="/">
+            <button
+              onClick={close}
+              className={`w-full flex items-center gap-3 px-4 py-3 text-sm text-left hover:bg-muted ${location === '/' ? 'font-semibold' : ''}`}
+            >
+              <HomeIcon className="h-5 w-5" />
+              <span className="flex-1">Home</span>
+            </button>
+          </Link>
+        </li>
+        {/* Products */}
+        <li>
+          <Link href="/products">
+            <button
+              onClick={close}
+              className={`w-full flex items-center gap-3 px-4 py-3 text-sm text-left hover:bg-muted ${location === '/products' ? 'font-semibold' : ''}`}
+            >
+              <Gem className="h-5 w-5" />
+              <span className="flex-1">Products</span>
+            </button>
+          </Link>
+        </li>
+        {/* Theme */}
+        <li>
+          <button
+            onClick={() => setPanel('theme')}
+            className="w-full flex items-center gap-3 px-4 py-3 text-sm text-left hover:bg-muted"
+          >
+            <Monitor className="h-5 w-5" />
+            <span className="flex-1">Theme</span>
+            <ChevronRight className="h-4 w-4" />
+          </button>
+        </li>
+        {/* Separator */}
+        <li className="my-2 h-px bg-border" />
+        {/* Auth / Profile */}
+        {!me ? (
+          <li>
+            <button
+              onClick={() => {
+                const current = window.location.pathname + window.location.search;
+                setLocation(`/login?returnTo=${encodeURIComponent(current)}`);
+                close();
+              }}
+              className="w-full flex items-center gap-3 px-4 py-3 text-sm text-left hover:bg-muted"
+            >
+              <User className="h-5 w-5" />
+              <span className="flex-1">Sign in / Register</span>
+            </button>
+          </li>
+        ) : (
+          <li>
+            <Link href="/dashboard">
+              <button
+                onClick={close}
+                className="w-full flex items-center gap-3 px-4 py-3 text-sm text-left hover:bg-muted"
+              >
+                <User className="h-5 w-5" />
+                <span className="flex-1">Profile</span>
+              </button>
+            </Link>
+          </li>
+        )}
+      </ul>
+    </div>
   );
 }
 

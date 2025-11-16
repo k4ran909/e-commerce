@@ -1,6 +1,6 @@
-import { Moon, Sun } from "lucide-react";
+import { Moon, Sun, Monitor } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useEffect, useState } from "react";
+import { useTheme } from "@/lib/theme-context";
 
 type ThemeToggleProps = {
   asListItem?: boolean;
@@ -8,36 +8,27 @@ type ThemeToggleProps = {
 };
 
 export function ThemeToggle({ asListItem = false, className }: ThemeToggleProps) {
-  const [theme, setTheme] = useState<"light" | "dark">("light");
+  const { preference, activeTheme, setPreference } = useTheme();
 
-  useEffect(() => {
-    const savedTheme = localStorage.getItem("theme") as "light" | "dark" | null;
-    const initialTheme = savedTheme || "light";
-    setTheme(initialTheme);
-    document.documentElement.classList.toggle("dark", initialTheme === "dark");
-  }, []);
-
-  const toggleTheme = () => {
-    const newTheme = theme === "light" ? "dark" : "light";
-    setTheme(newTheme);
-    localStorage.setItem("theme", newTheme);
-    document.documentElement.classList.toggle("dark", newTheme === "dark");
+  // Simple cycle: light -> dark -> system -> light
+  const cyclePreference = () => {
+    const next = preference === "light" ? "dark" : preference === "dark" ? "system" : "light";
+    setPreference(next);
   };
+
+  const icon = preference === "system" ? <Monitor className="h-5 w-5" /> : activeTheme === "light" ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />;
+  const label = asListItem ? `Theme: ${preference.charAt(0).toUpperCase() + preference.slice(1)}` : "Toggle theme";
 
   return (
     <Button
       variant="ghost"
       size={asListItem ? "default" : "icon"}
-      onClick={toggleTheme}
+      onClick={cyclePreference}
       data-testid="button-theme-toggle"
       className={`${asListItem ? "w-full justify-start" : "rounded-full"} ${className ?? ""}`}
     >
-      {theme === "light" ? (
-        <Moon className="h-5 w-5" />
-      ) : (
-        <Sun className="h-5 w-5" />
-      )}
-      {asListItem ? <span className="ml-2">Theme</span> : <span className="sr-only">Toggle theme</span>}
+      {icon}
+      {asListItem ? <span className="ml-2">{label}</span> : <span className="sr-only">{label}</span>}
     </Button>
   );
 }
