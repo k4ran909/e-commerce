@@ -238,7 +238,7 @@ flowchart TD
   A -->|XHR: /api/products| D[(MemStorage Products)]
   A -->|XHR: /api/search| D
   A -->|XHR: /api/auth/*| E[(Users & Sessions)]
-  A -->|POST: /api/orders (auth)| F[(Orders Store)]
+  A -->|POST: /api/orders| F["Orders Store (auth)"]
   A -->|POST: /api/payment/simulate| G{{Payment Simulator}}
   G -->|status| A
 ```
