@@ -5,7 +5,7 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "https://YOUR-KOYEB-SERVICE.koyeb.app/api/$1"
+      "destination": "https://light-dosi-veez-60122304.koyeb.app/api/$1"
     }
   ]
 }
