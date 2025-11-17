@@ -29,6 +29,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const refresh = async () => {
     try {
+      // Skip request if no session cookie to avoid 401 noise
+      const hasSid = typeof document !== "undefined" && document.cookie.includes("sid=");
+      if (!hasSid) {
+        setMe(null);
+        return;
+      }
       const res = await fetch("/api/auth/me", { credentials: "include" });
       if (!res.ok) {
         setMe(null);

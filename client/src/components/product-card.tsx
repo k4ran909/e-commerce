@@ -26,6 +26,10 @@ export function ProductCard({ product }: ProductCardProps) {
             alt={product.name}
             className="h-full w-full object-contain transition-transform duration-500 group-hover:scale-[1.02]"
             data-testid={`img-product-${product.id}`}
+            onError={(e) => {
+              if (e.currentTarget.src.endsWith('/favicon.png')) return;
+              e.currentTarget.src = "/favicon.png";
+            }}
           />
           {product.isPreOrder && (
             <Badge

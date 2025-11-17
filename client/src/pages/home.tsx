@@ -49,6 +49,10 @@ export default function Home() {
             src={heroImage}
             alt="Elegant jewelry collection"
             className="h-full w-full object-cover"
+            onError={(e) => {
+              if (e.currentTarget.src.endsWith('/favicon.png')) return;
+              e.currentTarget.src = "/favicon.png";
+            }}
           />
           <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/30 to-black/50" />
         </div>
@@ -102,6 +106,10 @@ export default function Home() {
                         src={category.image}
                         alt={`${category.name} category`}
                         className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+                        onError={(e) => {
+                          if (e.currentTarget.src.endsWith('/favicon.png')) return;
+                          e.currentTarget.src = "/favicon.png";
+                        }}
                       />
                     )}
                     <div className="absolute inset-0 bg-gradient-to-br from-black/20 via-black/10 to-black/20 group-hover:from-black/10 group-hover:via-black/5 group-hover:to-black/10 transition-all duration-300" />

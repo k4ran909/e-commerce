@@ -34,6 +34,9 @@ export function AuthModal({ open, onOpenChange }: { open: boolean; onOpenChange:
         <Dialog.Overlay className="fixed inset-0 z-[60] bg-black/50 backdrop-blur-[2px]" />
         <Dialog.Content className="fixed z-[61] left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[92vw] max-w-xl rounded-2xl border bg-card p-6 shadow-xl focus:outline-none">
           <Dialog.Title className="font-serif text-3xl text-center mb-6">{title}</Dialog.Title>
+          <Dialog.Description className="sr-only">
+            Login to your account or create a new one to continue shopping.
+          </Dialog.Description>
           <form className="space-y-4" onSubmit={onSubmit}>
             {mode === "register" && (
               <div>
