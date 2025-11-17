@@ -53,7 +53,7 @@ npm run db:seed
 
 Notes:
 - By default the app uses in‑memory storage; when `DATABASE_URL` is present it automatically uses PostgreSQL.
-- Static product images are served at `/assets/...` from `attached_assets/`.
+- Static product images now live in `client/public` and are served from the web root, e.g. `/Rose_gold_diamond_ring_406b3b84.png`.
 
 ---
 
@@ -72,7 +72,7 @@ server/           # Express app
   vite.ts         # Vite dev server integration and static serve
 shared/
   schema.ts       # Drizzle models + Zod insert schemas (types)
-attached_assets/  # Product images
+client/public/    # Static images (served at `/<filename>`)
 ```
 
 Path aliases (see `vite.config.ts`): `@` -> `client/src`, `@shared` -> `shared`, `@assets` -> `attached_assets`.
@@ -134,7 +134,7 @@ Seeded admin credentials (also seeded into Postgres when using `npm run db:seed`
 
 Sessions: HTTP‑only `sid` cookie (`SameSite=Lax`, path `/`). When `DATABASE_URL` is set, sessions are stored in the `sessions` table (Postgres). Otherwise, sessions are stored in an in‑memory map `sid -> userId`.
 
-Static assets: `/assets/*` mapped to `attached_assets/`.
+Static assets: files in `client/public` are served from the root path (`/`).
 
 ---
 
@@ -340,7 +340,7 @@ flowchart TB
 
 ## Conventions & Notes
 - Price values are in cents; client formats to IDR
-- Images under `attached_assets/generated_images/*` are served via `/assets/*`
+- Images were migrated to `client/public` and are served directly at `/<filename>`
 - Validation: Zod schemas from `shared/schema.ts` used server‑side and for form schemas client‑side
 - Error handling: server returns JSON `{ message, ... }` with appropriate status codes
 

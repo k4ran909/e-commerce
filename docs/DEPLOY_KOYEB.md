@@ -37,7 +37,7 @@ This is required by the `gen_random_uuid()` defaults in `shared/schema.ts`.
 - The app serves the API and built client from the same service, no separate frontend hosting required.
 - Seeding is idempotent: it skips products if present and only creates the admin user if missing.
 - For Neon/Postgres, ensure `pgcrypto` is enabled once (see SQL above).
-- Static images in `attached_assets/` are served via `/assets/*`.
+- Static images are bundled from `client/public` and served at root paths like `/<filename>`.
 
 ## Optional: Docker deployment
 You can deploy with a Dockerfile instead of Buildpacks. Create a Dockerfile like this and push:

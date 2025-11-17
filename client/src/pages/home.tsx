@@ -2,13 +2,13 @@ import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ArrowRight } from "lucide-react";
-import heroImage from "@assets/generated_images/Elegant_hero_lifestyle_jewelry_photo_1ea3bf8d.png";
-import ringsImage from "@assets/generated_images/Rose_gold_diamond_ring_406b3b84.png";
-import necklacesImage from "@assets/generated_images/Gold_pendant_necklace_84aa4494.png";
-import braceletsImage from "@assets/generated_images/Silver_charm_bracelet_db9c5a93.png";
-import earringsImage from "@assets/generated_images/Pearl_stud_earrings_00219806.png";
 
 export default function Home() {
+  const heroImage = "/Elegant_hero_lifestyle_jewelry_photo_1ea3bf8d.png";
+  const ringsImage = "/Rose_gold_diamond_ring_406b3b84.png";
+  const necklacesImage = "/Gold_pendant_necklace_84aa4494.png";
+  const braceletsImage = "/Silver_charm_bracelet_db9c5a93.png";
+  const earringsImage = "/Pearl_stud_earrings_00219806.png";
   const categories = [
     {
       name: "Rings",
