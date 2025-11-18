@@ -75,7 +75,8 @@ shared/
 client/public/    # Static images (served at `/<filename>`)
 ```
 
-Path aliases (see `vite.config.ts`): `@` -> `client/src`, `@shared` -> `shared`, `@assets` -> `attached_assets`.
+Path aliases (see `vite.config.ts`): `@` -> `client/src`, `@shared` -> `shared`.
+Static assets: files in `client/public` are served from the root path (e.g., `/image.png`).
 
 ---
 

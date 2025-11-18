@@ -7,14 +7,8 @@ import { createHash } from "crypto";
 import path from "path";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Serve static assets
-  app.use(
-    "/assets",
-    express.static(
-      // Resolve relative to the built server file (dist) and dev (src)
-      path.resolve(import.meta.dirname, "..", "attached_assets")
-    )
-  );
+  // Static assets are served from client/public by Vite in development
+  // and from the built "public" directory in production (see server/vite.ts).
 
   // Util: parse cookies
   const parseCookies = (cookieHeader?: string) => {
