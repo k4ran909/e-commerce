@@ -57,33 +57,59 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setMe(data);
       toast({ title: "Login successful", description: `Welcome back, ${data.name}` });
     } catch (e: any) {
-      // Parse error message for friendly feedback
-      let title = "Login failed";
-      let description = e?.message || "An error occurred";
-      try {
-        const [statusPart, bodyPart] = String(e?.message || "").split(":", 2);
-        const statusCode = parseInt(statusPart.trim(), 10);
-        let serverMsg = "";
-        if (bodyPart) {
-          const trimmed = bodyPart.trim();
-          if (trimmed.startsWith("{")) {
-            const parsed = JSON.parse(trimmed);
-            serverMsg = parsed?.message || "";
-          } else {
-            serverMsg = trimmed;
+      // Normalize error: never show raw status/json to users
+      const normalizeLoginError = (err: unknown): { title: string; description: string } => {
+        const defaultMsg = {
+          title: "Login failed",
+          description: "Something went wrong. Please try again.",
+        };
+
+        const msg = String((err as any)?.message || "");
+        // Try to extract status and body safely
+        const match = msg.match(/^\s*(\d{3})\s*:\s*(.*)$/);
+        let status = match ? parseInt(match[1], 10) : NaN;
+        let body = match ? match[2]?.trim() : "";
+        let serverMessage = "";
+        try {
+          if (body?.startsWith("{")) {
+            const parsed = JSON.parse(body);
+            serverMessage = String(parsed?.message || "");
+          } else if (body) {
+            serverMessage = body;
           }
+        } catch {
+          // ignore parse errors
         }
 
-        if (statusCode === 404) {
-          title = "Account not found";
-          description = "Hey this account is not found, let’s register";
-        } else if (statusCode === 401) {
-          title = "Incorrect password";
-          description = "Hey password is incorrect, try again";
-        } else if (serverMsg) {
-          description = serverMsg;
+        // Map to friendly, non-technical messages
+        if (status === 404 || /account not found/i.test(serverMessage)) {
+          return {
+            title: "Login failed",
+            description: "Account with those credentials does not exist.",
+          };
         }
-      } catch {}
+        if (status === 401 || /invalid credentials|incorrect password/i.test(serverMessage)) {
+          return {
+            title: "Login failed",
+            description: "The password is incorrect. Please try again.",
+          };
+        }
+        if (status === 400 || /validation|email|password/i.test(serverMessage)) {
+          return {
+            title: "Login failed",
+            description: "Please enter a valid email and password.",
+          };
+        }
+
+        // If server provided a non-technical message, use it
+        if (serverMessage && !/^\d{3}/.test(serverMessage)) {
+          return { title: "Login failed", description: serverMessage };
+        }
+
+        return defaultMsg;
+      };
+
+      const { title, description } = normalizeLoginError(e);
       toast({ title, description, variant: "destructive" });
       throw e;
     }
@@ -96,7 +122,53 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setMe(data);
       toast({ title: "Registration successful", description: `Account created for ${data.name}` });
     } catch (e: any) {
-      toast({ title: "Registration failed", description: e.message, variant: "destructive" });
+      // Normalize register errors similar to login
+      const normalizeRegisterError = (err: unknown): { title: string; description: string } => {
+        const defaultMsg = {
+          title: "Registration failed",
+          description: "Something went wrong. Please try again.",
+        };
+
+        const msg = String((err as any)?.message || "");
+        const match = msg.match(/^\s*(\d{3})\s*:\s*(.*)$/);
+        const status = match ? parseInt(match[1], 10) : NaN;
+        const body = match ? match[2]?.trim() : "";
+        let serverMessage = "";
+        try {
+          if (body?.startsWith("{")) {
+            const parsed = JSON.parse(body);
+            serverMessage = String(parsed?.message || "");
+          } else if (body) {
+            serverMessage = body;
+          }
+        } catch {}
+
+        // Friendly mappings
+        if (/email already registered/i.test(serverMessage)) {
+          return {
+            title: "Email already registered",
+            description: "An account with this email already exists. Try logging in.",
+          };
+        }
+        if (/invalid email/i.test(serverMessage)) {
+          return { title: "Invalid details", description: "Please enter a valid email address." };
+        }
+        if (/password.*(least|minimum).*6/i.test(serverMessage)) {
+          return { title: "Invalid password", description: "Password must be at least 6 characters." };
+        }
+        if (/name is required/i.test(serverMessage)) {
+          return { title: "Name required", description: "Please enter your full name." };
+        }
+
+        if (status === 400 && serverMessage) {
+          return { title: "Registration failed", description: serverMessage };
+        }
+
+        return defaultMsg;
+      };
+
+      const { title, description } = normalizeRegisterError(e);
+      toast({ title, description, variant: "destructive" });
       throw e;
     }
   };

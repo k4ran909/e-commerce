@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "./theme-toggle";
 import { useTheme } from "@/lib/theme-context";
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTrigger, SheetDescription } from "@/components/ui/sheet";
 import { useCart } from "@/lib/cart-context";
 import { useAuth } from "@/lib/auth-context";
 import { Input } from "@/components/ui/input";
@@ -189,6 +189,9 @@ export function Header() {
               </Button>
             </SheetTrigger>
             <SheetContent side="right" className="w-80 px-4 pt-14 pb-6">
+              <SheetDescription asChild>
+                <p id="mobile-menu-description" className="sr-only">Navigation drawer with links and settings</p>
+              </SheetDescription>
               <MobileMenuContent
                 panel={mobilePanel}
                 setPanel={setMobilePanel}

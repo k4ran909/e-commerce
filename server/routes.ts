@@ -63,7 +63,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/auth/register", async (req, res) => {
     try {
       const body = req.body;
-      const parsed = insertUserSchema.extend({ password: z.string() }).parse(body as any);
+      // Stricter validation to prevent empty registrations
+      const parsed = z
+        .object({
+          name: z.string().trim().min(1, "Name is required"),
+          email: z.string().trim().email("Invalid email address"),
+          password: z.string().min(6, "Password must be at least 6 characters"),
+          role: z.string().optional(),
+        })
+        .parse(body as any);
+
       const existing = await storage.findUserByEmail(parsed.email);
       if (existing) {
         return res.status(400).json({ message: "Email already registered" });
@@ -74,7 +83,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { passwordHash, ...safe } = user as any;
       res.status(201).json(safe);
     } catch (error: any) {
-      res.status(400).json({ message: "Invalid user data", error: error.message });
+      const friendly = error?.errors?.[0]?.message || error?.message || "Invalid user data";
+      res.status(400).json({ message: friendly });
     }
   });
 
@@ -106,12 +116,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const items = await storage.getCart(user.id);
     // Hydrate with product data
     const hydrated = await Promise.all(
-      items.map(async (i) => ({
-        id: i.id,
-        quantity: i.quantity,
-        size: i.size ?? null,
-        product: await storage.getProduct(i.productId),
-      }))
+      items.map(async (i) => {
+        const p = await storage.getProduct(i.productId);
+        return {
+          id: i.id,
+          quantity: i.quantity,
+          size: i.size ?? null,
+          product: p ? normalizeProduct(p) : p,
+        };
+      })
     );
     // filter unknown products
     res.json(hydrated.filter((x) => x.product));
@@ -127,7 +140,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     await storage.addOrIncrementCartItem(user.id, productId, size ?? undefined, quantity ?? 1);
     const items = await storage.getCart(user.id);
     const hydrated = await Promise.all(
-      items.map(async (i) => ({ id: i.id, quantity: i.quantity, size: i.size ?? null, product: await storage.getProduct(i.productId) }))
+      items.map(async (i) => {
+        const p = await storage.getProduct(i.productId);
+        return { id: i.id, quantity: i.quantity, size: i.size ?? null, product: p ? normalizeProduct(p) : p };
+      })
     );
     res.status(201).json(hydrated.filter((x) => x.product));
   });
@@ -140,7 +156,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     await storage.updateCartItemQuantity(user.id, req.params.id, quantity);
     const items = await storage.getCart(user.id);
     const hydrated = await Promise.all(
-      items.map(async (i) => ({ id: i.id, quantity: i.quantity, size: i.size ?? null, product: await storage.getProduct(i.productId) }))
+      items.map(async (i) => {
+        const p = await storage.getProduct(i.productId);
+        return { id: i.id, quantity: i.quantity, size: i.size ?? null, product: p ? normalizeProduct(p) : p };
+      })
     );
     res.json(hydrated.filter((x) => x.product));
   });
@@ -151,7 +170,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     await storage.removeCartItem(user.id, req.params.id);
     const items = await storage.getCart(user.id);
     const hydrated = await Promise.all(
-      items.map(async (i) => ({ id: i.id, quantity: i.quantity, size: i.size ?? null, product: await storage.getProduct(i.productId) }))
+      items.map(async (i) => {
+        const p = await storage.getProduct(i.productId);
+        return { id: i.id, quantity: i.quantity, size: i.size ?? null, product: p ? normalizeProduct(p) : p };
+      })
     );
     res.json(hydrated.filter((x) => x.product));
   });

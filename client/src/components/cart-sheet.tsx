@@ -1,6 +1,6 @@
-import { Sheet, SheetContent, SheetTitle, SheetClose } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTitle, SheetClose, SheetDescription } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Minus, Plus, X, ShoppingBag } from "lucide-react";
+import { Minus, Plus, X, ShoppingBag, Trash2 } from "lucide-react";
 import { useCart } from "@/lib/cart-context";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/lib/auth-context";
@@ -20,7 +20,7 @@ export function CartSheet() {
 
   return (
     <Sheet open={isCartOpen} onOpenChange={setIsCartOpen}>
-      <SheetContent hideClose className="flex w-full flex-col sm:max-w-lg" aria-describedby="cart-description">
+      <SheetContent hideClose className="flex w-full flex-col sm:max-w-lg" aria-describedby={undefined}>
         <div className="flex items-center justify-between mb-2">
           <SheetTitle className="font-serif text-2xl">Shopping Cart</SheetTitle>
           <SheetClose asChild>
@@ -30,11 +30,13 @@ export function CartSheet() {
             </Button>
           </SheetClose>
         </div>
-        <p id="cart-description" className="sr-only">
+        <SheetDescription asChild>
+          <p id="cart-description" className="sr-only">
           {items.length === 0 
             ? "Your shopping cart is empty" 
             : `Your shopping cart contains ${items.length} ${items.length === 1 ? 'item' : 'items'}`}
-        </p>
+          </p>
+        </SheetDescription>
 
         {items.length === 0 ? (
           <div className="flex flex-1 flex-col items-center justify-center gap-4">
@@ -94,7 +96,7 @@ export function CartSheet() {
                             data-testid={`button-remove-${itemKey}`}
                             className="h-8 w-8 rounded-full"
                           >
-                            <X className="h-4 w-4" />
+                            <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
                         <div className="mt-2 flex items-center gap-2">
