@@ -27,6 +27,11 @@ export default function ProductDetail() {
   const { toast } = useToast();
   const { me } = useAuth();
   const [, setLocation] = useLocation();
+  const search = typeof window !== "undefined" ? window.location.search : "";
+  const paramsSearch = new URLSearchParams(search);
+  const from = paramsSearch.get("from");
+  const backHref = from === "admin" ? "/admin" : "/products";
+  const backLabel = from === "admin" ? "Back to Dashboard" : "Back to Products";
 
   if (isLoading) {
     return (
@@ -52,8 +57,8 @@ export default function ProductDetail() {
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <h2 className="font-serif text-2xl mb-4">Product not found</h2>
-          <Link href="/products">
-            <Button>Back to Products</Button>
+          <Link href={backHref}>
+            <Button>{backLabel}</Button>
           </Link>
         </div>
       </div>
@@ -93,10 +98,10 @@ export default function ProductDetail() {
     <div className="min-h-screen bg-background py-8 lg:py-12">
       <div className="container mx-auto px-4 lg:px-8">
         {/* Back button */}
-        <Link href="/products">
+        <Link href={backHref}>
           <Button variant="ghost" className="mb-8" data-testid="button-back">
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Products
+            {backLabel}
           </Button>
         </Link>
 

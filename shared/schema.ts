@@ -34,10 +34,12 @@ export const products = pgTable("products", {
   isPreOrder: boolean("is_pre_order").notNull().default(false),
   inStock: boolean("in_stock").notNull().default(true),
   sizes: text("sizes").array(), // available sizes for rings/bracelets
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 export const insertProductSchema = createInsertSchema(products).omit({
   id: true,
+  createdAt: true,
 });
 
 export type InsertProduct = z.infer<typeof insertProductSchema>;

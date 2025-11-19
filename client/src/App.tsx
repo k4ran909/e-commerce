@@ -15,6 +15,7 @@ import OrderSuccess from "@/pages/order-success";
 import NotFound from "@/pages/not-found";
 import UserDashboard from "@/pages/user-dashboard";
 import AdminDashboard from "@/pages/admin-dashboard";
+import AdminProductForm from "@/pages/admin-product-form";
 import Login from "@/pages/login";
 import Register from "@/pages/register";
 import { ThemeProvider } from "@/lib/theme-context";
@@ -29,6 +30,8 @@ function Router() {
       <Route path="/checkout" component={Checkout} />
       <Route path="/dashboard" component={UserDashboard} />
       <Route path="/admin" component={AdminDashboard} />
+      <Route path="/admin/products/new" component={AdminProductForm} />
+      <Route path="/admin/products/:id/edit" component={AdminProductForm} />
       <Route path="/login" component={Login} />
       <Route path="/register" component={Register} />
       <Route path="/order-success" component={OrderSuccess} />

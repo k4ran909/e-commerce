@@ -258,11 +258,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/products", async (req, res) => {
     try {
+      const user = await getUserFromRequest(req);
+      if (!user || user.role !== "admin") return res.status(401).json({ message: "Unauthorized" });
       const validated = insertProductSchema.parse(req.body);
       const product = await storage.createProduct(validated);
       res.status(201).json(product);
     } catch (error: any) {
       res.status(400).json({ message: "Invalid product data", error: error.message });
+    }
+  });
+
+  app.patch("/api/products/:id", async (req, res) => {
+    try {
+      const user = await getUserFromRequest(req);
+      if (!user || user.role !== "admin") return res.status(401).json({ message: "Unauthorized" });
+      // Partial update: validate by narrowing to known fields and using zod partial
+      const partial = insertProductSchema.partial().safeParse(req.body);
+      if (!partial.success) {
+        return res.status(400).json({ message: "Invalid product data" });
+      }
+      const updated = await storage.updateProduct(req.params.id, partial.data);
+      if (!updated) return res.status(404).json({ message: "Product not found" });
+      res.json(updated);
+    } catch (error: any) {
+      res.status(500).json({ message: "Error updating product", error: error.message });
+    }
+  });
+
+  app.delete("/api/products/:id", async (req, res) => {
+    try {
+      const user = await getUserFromRequest(req);
+      if (!user || user.role !== "admin") return res.status(401).json({ message: "Unauthorized" });
+      const product = await storage.getProduct(req.params.id);
+      if (!product) return res.status(404).json({ message: "Product not found" });
+      await storage.deleteProduct(req.params.id);
+      res.status(204).send();
+    } catch (error: any) {
+      res.status(500).json({ message: "Error deleting product", error: error.message });
     }
   });
 
@@ -312,6 +344,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
       orders: orders.length,
       revenue,
     });
+  });
+
+  // Admin sales overview
+  app.get("/api/admin/sales", async (req, res) => {
+    const user = await getUserFromRequest(req);
+    if (!user || user.role !== "admin") return res.status(401).json({ message: "Unauthorized" });
+
+    const period = (req.query.period as string | undefined) || "month"; // week | month | quarter
+    let days = 30;
+    if (period === "week") days = 7;
+    else if (period === "quarter") days = 90;
+
+    const now = new Date();
+    const end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+    const start = new Date(end);
+    start.setUTCDate(start.getUTCDate() - (days - 1));
+
+    const orders = await storage.getOrders();
+    const inRange = orders.filter((o: any) => {
+      const d = new Date(o.createdAt);
+      const di = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+      return di >= +start && di <= +end;
+    });
+
+    const byDay: Record<string, number> = {};
+    for (let i = 0; i < days; i++) {
+      const d = new Date(start);
+      d.setUTCDate(start.getUTCDate() + i);
+      const key = d.toISOString().slice(0, 10);
+      byDay[key] = 0;
+    }
+    inRange.forEach((o: any) => {
+      const d = new Date(o.createdAt);
+      const key = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()))
+        .toISOString()
+        .slice(0, 10);
+      byDay[key] = (byDay[key] || 0) + o.totalAmount;
+    });
+
+    const points = Object.keys(byDay)
+      .sort()
+      .map((date) => ({ date, total: byDay[date] }));
+
+    res.json({ period, from: start.toISOString().slice(0, 10), to: end.toISOString().slice(0, 10), points });
   });
 
   app.patch("/api/orders/:id/status", async (req, res) => {

@@ -15,13 +15,15 @@ import {
 } from "@shared/schema";
 import { createHash, randomUUID } from "crypto";
 import { initDb, getDb } from "./db";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 
 export interface IStorage {
   // Products
   getProducts(): Promise<Product[]>;
   getProduct(id: string): Promise<Product | undefined>;
   createProduct(product: InsertProduct): Promise<Product>;
+  updateProduct(id: string, product: Partial<InsertProduct>): Promise<Product | undefined>;
+  deleteProduct(id: string): Promise<void>;
 
   // Orders
   getOrders(): Promise<Order[]>;
@@ -475,6 +477,8 @@ export class MemStorage implements IStorage {
         isPreOrder: product.isPreOrder ?? false,
         inStock: product.inStock ?? true,
         sizes: (product as any).sizes ?? null,
+        // @ts-ignore createdAt exists on Product type
+        createdAt: new Date(),
       };
       this.products.set(id, prod);
     });
@@ -517,9 +521,26 @@ export class MemStorage implements IStorage {
       isPreOrder: insertProduct.isPreOrder ?? false,
       inStock: insertProduct.inStock ?? true,
       sizes: (insertProduct as any).sizes ?? null,
+      // @ts-ignore createdAt exists on Product type
+      createdAt: new Date(),
     };
     this.products.set(id, product);
     return product;
+  }
+
+  async updateProduct(id: string, updates: Partial<InsertProduct>): Promise<Product | undefined> {
+    const existing = this.products.get(id);
+    if (!existing) return undefined;
+    const updated: Product = {
+      ...existing,
+      ...(updates as any),
+    };
+    this.products.set(id, updated);
+    return updated;
+  }
+
+  async deleteProduct(id: string): Promise<void> {
+    this.products.delete(id);
   }
 
   // Orders
@@ -709,6 +730,27 @@ class PostgresStorage implements IStorage {
     return this.mapProduct(inserted[0]);
   }
 
+  async updateProduct(id: string, updates: Partial<InsertProduct>): Promise<Product | undefined> {
+    const values: any = { ...updates };
+    // Avoid accidentally setting undefined fields in SQL
+    Object.keys(values).forEach((k) => values[k] === undefined && delete values[k]);
+    if (Object.keys(values).length === 0) {
+      return await this.getProduct(id);
+    }
+    const updated = await this.db
+      .update(products)
+      .set(values)
+      .where(eq(products.id, id))
+      .returning()
+      .execute();
+    if (!updated || updated.length === 0) return undefined;
+    return this.mapProduct(updated[0]);
+  }
+
+  async deleteProduct(id: string): Promise<void> {
+    await this.db.delete(products).where(eq(products.id, id)).execute();
+  }
+
   // Orders
   async getOrders(): Promise<Order[]> {
     const res = await this.db.select().from(orders).execute();
@@ -874,13 +916,16 @@ let storageInstance: IStorage;
 if (process.env.DATABASE_URL) {
   try {
     const db = initDb(process.env.DATABASE_URL);
+    // Probe connectivity early; if it fails, fall back to memory.
+    await (db as any).execute?.(sql`select 1`)?.catch?.((e: any) => {
+      throw e;
+    });
     storageInstance = new PostgresStorage(db);
     console.log("[storage] Using PostgresStorage (DATABASE_URL detected)");
   } catch (e) {
-    // fallback
-    console.error("Failed to init DB, falling back to MemStorage:", e);
+    console.error("[storage] DB unreachable, falling back to MemStorage:", e);
     storageInstance = new MemStorage();
-    console.warn("[storage] Falling back to in-memory storage. Registrations will NOT persist to DB.");
+    console.warn("[storage] Using in-memory storage; data will not persist to DB.");
   }
 } else {
   storageInstance = new MemStorage();
