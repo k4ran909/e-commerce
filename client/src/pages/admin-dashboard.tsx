@@ -20,8 +20,16 @@ export default function AdminDashboard() {
   });
 
   const [period, setPeriod] = useState<"week"|"month"|"quarter">("month");
-  const { data: sales } = useQuery<{ period: string; from: string; to: string; points: { date: string; total: number }[] }>({
+  const { data: sales, isLoading: salesLoading, isError: salesError } = useQuery<{ period: string; from: string; to: string; points: { date: string; total: number }[] }>({
     queryKey: ["/api/admin/sales", period],
+    queryFn: async () => {
+      const res = await fetch(`/api/admin/sales?period=${period}`, { credentials: "include" });
+      if (!res.ok) {
+        const text = (await res.text()) || res.statusText;
+        throw new Error(text);
+      }
+      return res.json();
+    },
   });
 
   const queryClient = useQueryClient();
@@ -111,9 +119,15 @@ export default function AdminDashboard() {
             <h2 className="font-serif text-xl font-light">Products</h2>
             <p className="text-sm text-muted-foreground">Manage your catalog</p>
           </div>
-          <Link href="/admin/products/new"><Button>Add New Product</Button></Link>
+          <Link href="/admin/products/new">
+            <Button className="whitespace-nowrap">
+              <span className="md:hidden">Add Product</span>
+              <span className="hidden md:inline">Add New Product</span>
+            </Button>
+          </Link>
         </div>
-        <div className="overflow-x-auto">
+        {/* Desktop / Tablet table */}
+        <div className="overflow-x-auto hidden md:block">
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left border-b">
@@ -159,31 +173,84 @@ export default function AdminDashboard() {
             </tbody>
           </table>
         </div>
+        {/* Mobile list */}
+        <div className="md:hidden">
+          <div className="divide-y">
+            {productList?.slice()
+              .sort((a, b) => new Date(b.createdAt as any).getTime() - new Date(a.createdAt as any).getTime())
+              .map((p) => (
+              <div key={p.id} className="p-4 flex flex-col gap-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs font-mono text-muted-foreground">{p.id.slice(0,8)}</div>
+                    <h3 className="text-sm font-medium leading-snug mt-1 break-words">{p.name}</h3>
+                    <div className="mt-1 flex flex-wrap gap-2 text-xs text-muted-foreground">
+                      <span className="capitalize">{p.category}</span>
+                      <span>• {formatIDR.format(p.price / 100)}</span>
+                      {p.createdAt && <span>• {new Date(p.createdAt as any).toLocaleDateString()}</span>}
+                    </div>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Link href={`/admin/products/${p.id}/edit`}><Button size="sm" variant="outline" className="flex-1">Edit</Button></Link>
+                  <Link href={`/product/${p.id}?from=admin`}><Button size="sm" variant="outline" className="flex-1">Preview</Button></Link>
+                  <Confirm
+                    title="Delete product?"
+                    description={`This will permanently remove ${p.name}.`}
+                    confirmLabel="Delete"
+                    onConfirm={() => deleteMutation.mutate(p.id)}
+                  >
+                    <Button size="sm" variant="destructive" className="flex-1">Delete</Button>
+                  </Confirm>
+                </div>
+              </div>
+            ))}
+            {!productList?.length && (
+              <div className="p-6 text-center text-sm text-muted-foreground">No products</div>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Sales Overview */}
       <div className="border rounded-xl bg-card">
-        <div className="p-4 border-b flex items-center justify-between">
-          <div>
-            <h2 className="font-serif text-xl font-light">Sales Overview</h2>
-            <p className="text-sm text-muted-foreground">Total revenue per day</p>
-          </div>
-          <div className="flex gap-2">
+        <div className="p-4 border-b">
+          <h2 className="font-serif text-xl font-light">Sales Overview</h2>
+          <p className="text-sm text-muted-foreground">Total revenue per day</p>
+          <div className="mt-3 flex gap-2 flex-wrap">
             {(["week","month","quarter"] as const).map((p) => (
               <Button key={p} variant={period===p?"default":"outline"} size="sm" onClick={() => setPeriod(p)} className="capitalize">{p}</Button>
             ))}
           </div>
         </div>
-        <div className="p-4 h-[300px]">
+        <div className="p-4 h-[240px] sm:h-[300px] relative">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={sales?.points ?? []}>
+            <LineChart
+              data={sales?.points ?? []}
+              margin={typeof window !== 'undefined' && window.innerWidth < 640 ? { top:8, right:12, bottom:8, left:40 } : { top:8, right:16, bottom:8, left:72 }}
+            >
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="date" tickFormatter={(d) => new Date(d).toLocaleDateString()} minTickGap={24} />
-              <YAxis tickFormatter={(v) => `${Math.round(v/1000)}k`} />
+              <YAxis width={typeof window !== 'undefined' && window.innerWidth < 640 ? 48 : 64} tickMargin={8} tickFormatter={(v) => `${Math.round(v/1000)}k`} />
               <Tooltip formatter={(v: any) => formatIDR.format((v as number)/100)} labelFormatter={(l) => new Date(l).toLocaleDateString()} />
               <Line type="monotone" dataKey="total" stroke="#3b82f6" strokeWidth={2} dot={false} />
             </LineChart>
           </ResponsiveContainer>
+          {salesLoading && (
+            <div className="absolute inset-0 flex items-center justify-center text-xs text-muted-foreground">
+              Loading sales…
+            </div>
+          )}
+          {salesError && !salesLoading && (
+            <div className="absolute inset-0 flex items-center justify-center text-xs text-red-500">
+              Failed to load sales
+            </div>
+          )}
+          {!salesLoading && !salesError && sales && sales.points.every((p) => p.total === 0) && (
+            <div className="absolute inset-0 flex items-center justify-center text-xs text-muted-foreground">
+              No revenue in this period
+            </div>
+          )}
         </div>
       </div>
     </div>

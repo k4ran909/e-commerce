@@ -6,6 +6,11 @@ import { z } from "zod";
 import { createHash } from "crypto";
 import path from "path";
 
+// Rate limiting for account deletion attempts (in-memory)
+const deleteAttempts: Map<string, { count: number; lockedUntil?: number }> = new Map();
+const MAX_DELETE_ATTEMPTS = 5;
+const LOCKOUT_MINUTES = 15; // lockout duration after max failed attempts
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Static assets are served from client/public by Vite in development
   // and from the built "public" directory in production (see server/vite.ts).
@@ -191,7 +196,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const products = await storage.getProducts();
       res.json(products.map(normalizeProduct));
     } catch (error: any) {
-      res.status(500).json({ message: "Error fetching products", error: error.message });
+      const devInfo = process.env.NODE_ENV === "development" ? {
+        stack: error?.stack,
+        name: error?.name,
+      } : {};
+      res.status(500).json({ message: "Error fetching products", error: error.message, ...devInfo });
     }
   });
 
@@ -434,6 +443,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     } catch (error: any) {
       res.status(500).json({ message: "Payment processing error", error: error.message });
+    }
+  });
+
+  // Delete own account (non-admin users only) with confirmation + rate limiting
+  app.post("/api/account/delete", async (req, res) => {
+    try {
+      const user = await getUserFromRequest(req);
+      if (!user) return res.status(401).json({ message: "Unauthorized" });
+      if (user.role === "admin") return res.status(400).json({ message: "Admins cannot delete their account" });
+
+      const attempt = deleteAttempts.get(user.id);
+      if (attempt?.lockedUntil && attempt.lockedUntil > Date.now()) {
+        const remainingMs = attempt.lockedUntil - Date.now();
+        const remainingMin = Math.ceil(remainingMs / 60000);
+        return res.status(429).json({ message: `Too many failed attempts. Try again in ${remainingMin}m.` });
+      }
+
+      const { password, confirm } = req.body as { password?: string; confirm?: string };
+      if (!password) return res.status(400).json({ message: "Password is required" });
+      if (confirm !== "DELETE") return res.status(400).json({ message: "Confirmation text mismatch" });
+
+      const hash = createHash("sha256").update(password).digest("hex");
+      if ((user as any).passwordHash !== hash) {
+        const prev = attempt?.count ?? 0;
+        const next = prev + 1;
+        const record: { count: number; lockedUntil?: number } = { count: next };
+        if (next >= MAX_DELETE_ATTEMPTS) {
+          record.lockedUntil = Date.now() + LOCKOUT_MINUTES * 60 * 1000;
+        }
+        deleteAttempts.set(user.id, record);
+        return res.status(401).json({ message: "Incorrect password", attempts: next, locked: !!record.lockedUntil });
+      }
+
+      // Success: clear attempts record
+      if (attempt) deleteAttempts.delete(user.id);
+
+      await storage.deleteUser(user.id);
+      res.setHeader("Set-Cookie", "sid=; Path=/; Max-Age=0; SameSite=Lax");
+      res.json({ success: true });
+    } catch (e: any) {
+      res.status(500).json({ message: "Failed to delete account", error: e.message });
     }
   });
 

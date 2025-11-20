@@ -8,7 +8,21 @@ export function initDb(connectionString?: string) {
   const conn = connectionString || process.env.DATABASE_URL;
   if (!conn) throw new Error("DATABASE_URL not provided");
   if (!pool) {
-    pool = new Pool({ connectionString: conn });
+    let ssl: any = undefined;
+    try {
+      const url = new URL(conn);
+      const host = url.hostname || "";
+      const hasSslParam = /(^|&)sslmode=require(&|$)/.test(url.searchParams.toString());
+      const isKnownRemote = /(supabase\.co|neon\.tech|render\.com|aws\.com|rds\.amazonaws\.com|azure\.com|googleapis\.com)$/i.test(host);
+      const forceSsl = String(process.env.DATABASE_SSL || "").toLowerCase() === "true";
+      if (forceSsl || hasSslParam || isKnownRemote) {
+        ssl = { rejectUnauthorized: false };
+      }
+    } catch {
+      // If URL parsing fails, leave SSL undefined and let pg decide.
+    }
+
+    pool = new Pool({ connectionString: conn, ssl });
     db = drizzle(pool);
   }
   return db;

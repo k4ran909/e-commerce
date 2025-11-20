@@ -47,6 +47,9 @@ export interface IStorage {
   updateCartItemQuantity(userId: string, cartItemId: string, quantity: number): Promise<CartItem | undefined>;
   removeCartItem(userId: string, cartItemId: string): Promise<void>;
   clearCart(userId: string): Promise<void>;
+  // Account
+  deleteUser(id: string): Promise<void>;
+  deleteSessionsForUser(userId: string): Promise<void>;
 }
 
 export class MemStorage implements IStorage {
@@ -67,7 +70,6 @@ export class MemStorage implements IStorage {
   }
 
   private seedProducts() {
-    // Deterministic pseudo-random to keep prices stable across restarts
     const rand01 = (key: string) => {
       const hex = createHash("sha256").update(key).digest("hex").slice(0, 8);
       const n = parseInt(hex, 16);
@@ -677,6 +679,21 @@ export class MemStorage implements IStorage {
   async clearCart(userId: string): Promise<void> {
     this.carts.delete(userId);
   }
+
+  async deleteUser(id: string): Promise<void> {
+    this.users.delete(id);
+    this.carts.delete(id);
+    // Remove sessions for user (avoid iterator/destructuring for ES5 targets)
+    this.sessions.forEach((uid, sid) => {
+      if (uid === id) this.sessions.delete(sid);
+    });
+  }
+
+  async deleteSessionsForUser(userId: string): Promise<void> {
+    this.sessions.forEach((uid, sid) => {
+      if (uid === userId) this.sessions.delete(sid);
+    });
+  }
 }
 
 class PostgresStorage implements IStorage {
@@ -907,6 +924,19 @@ class PostgresStorage implements IStorage {
 
   async clearCart(userId: string): Promise<void> {
     await this.db.delete(cartItems).where(eq(cartItems.userId, userId)).execute();
+  }
+
+  async deleteUser(id: string): Promise<void> {
+    // Delete user sessions
+    await this.db.delete(sessions).where(eq(sessions.userId, id)).execute();
+    // Delete cart items
+    await this.db.delete(cartItems).where(eq(cartItems.userId, id)).execute();
+    // Delete user
+    await this.db.delete(users).where(eq(users.id, id)).execute();
+  }
+
+  async deleteSessionsForUser(userId: string): Promise<void> {
+    await this.db.delete(sessions).where(eq(sessions.userId, userId)).execute();
   }
 }
 
