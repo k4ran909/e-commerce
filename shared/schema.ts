@@ -113,6 +113,7 @@ export type Session = typeof sessions.$inferSelect;
 
 export const insertOrderSchema = createInsertSchema(orders).omit({
   id: true,
+  userId: true,
   createdAt: true,
 }).extend({
   customerEmail: z.string().email("Invalid email address"),

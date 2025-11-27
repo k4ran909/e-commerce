@@ -78,11 +78,10 @@ export default function Checkout() {
     };
   }, [isProcessing, setLocation]);
 
-  const checkoutFormSchema = insertOrderSchema.omit({ userId: true });
-  type CheckoutFormData = z.infer<typeof checkoutFormSchema>;
+  type CheckoutFormData = z.infer<typeof insertOrderSchema>;
 
   const form = useForm<CheckoutFormData>({
-    resolver: zodResolver(checkoutFormSchema),
+    resolver: zodResolver(insertOrderSchema),
     defaultValues: {
       customerName: "",
       customerEmail: "",
@@ -133,11 +132,9 @@ export default function Checkout() {
     setIsProcessing(true);
 
     await new Promise((resolve) => setTimeout(resolve, 2000));
-
-    const { userId, ...orderData } = data as any;
     
     const orderPayload = {
-      ...orderData,
+      ...data,
       totalAmount: finalTotal,
       isPreOrder: items.some((item) => item.product.isPreOrder),
       paymentStatus: "paid" as const,
