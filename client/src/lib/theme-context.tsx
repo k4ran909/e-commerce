@@ -11,20 +11,18 @@ type ThemeContextValue = {
 const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
 
 function getInitialPreference(): ThemePreference {
-  if (typeof window === "undefined") return "light";
-  return "system"; // default to system for better first-load UX
+  return "system"; // always follow system theme
 }
 
-function resolveActive(pref: ThemePreference, mqlDark: MediaQueryList | null): "light" | "dark" {
+function resolveActive(pref: ThemePreference, systemDark: boolean): "light" | "dark" {
   if (pref === "system") {
-    return mqlDark && mqlDark.matches ? "dark" : "light";
+    return systemDark ? "dark" : "light";
   }
   return pref;
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [preference, setPrefState] = useState<ThemePreference>(getInitialPreference);
-  const mqlRef = useRef<MediaQueryList | null>(null);
   const [systemDark, setSystemDark] = useState<boolean>(() => {
     if (typeof window === "undefined") return false;
     try {
@@ -38,7 +36,6 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     if (typeof window === "undefined") return;
     try {
       const mql = window.matchMedia("(prefers-color-scheme: dark)");
-      mqlRef.current = mql;
       const handler = (e: MediaQueryListEvent) => setSystemDark(e.matches);
       mql.addEventListener("change", handler);
       return () => mql.removeEventListener("change", handler);
@@ -46,7 +43,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const activeTheme = useMemo<"light" | "dark">(() => {
-    return resolveActive(preference, mqlRef.current);
+    return resolveActive(preference, systemDark);
   }, [preference, systemDark]);
 
   useEffect(() => {
