@@ -16,7 +16,7 @@ import {
   orderItems,
   sessions,
 } from "@shared/schema";
-import { randomUUID } from "crypto";
+import { randomUUID, createHash } from "crypto";
 import { initDb, getDb } from "./db";
 import { eq, sql } from "drizzle-orm";
 import { hashPassword } from "./jwt";
@@ -71,8 +71,7 @@ export class MemStorage implements IStorage {
 
   private seedProducts() {
     const rand01 = (key: string) => {
-      const crypto = require("crypto");
-      const hex = crypto.createHash("sha256").update(key).digest("hex").slice(0, 8);
+      const hex = createHash("sha256").update(key).digest("hex").slice(0, 8);
       const n = parseInt(hex, 16);
       return (n >>> 0) / 0xffffffff;
     };
