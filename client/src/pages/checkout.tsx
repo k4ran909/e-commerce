@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useCart } from "@/lib/cart-context";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -19,6 +20,7 @@ import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/lib/auth-context";
 
 export default function Checkout() {
+  const { t } = useTranslation();
   const { items, totalPrice, clearCart } = useCart();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
@@ -28,8 +30,8 @@ export default function Checkout() {
   useEffect(() => {
     if (!loading && !me) {
       toast({
-        title: "Login required",
-        description: "Please log in to continue to checkout.",
+        title: t("cart.loginRequired"),
+        description: t("cart.loginToCheckout"),
         variant: "destructive",
       });
       setLocation("/login?returnTo=%2Fcheckout");
@@ -39,7 +41,7 @@ export default function Checkout() {
   useEffect(() => {
     if (!isProcessing) return;
 
-    const message = "Your order is processing. Are you sure you want to leave this page?";
+    const message = t("checkout.processingWarning", { defaultValue: "Your order is processing. Are you sure you want to leave this page?" });
 
     const onBeforeUnload = (e: BeforeUnloadEvent) => {
       e.preventDefault();
@@ -103,16 +105,16 @@ export default function Checkout() {
     },
     onSuccess: () => {
       toast({
-        title: "Order placed successfully!",
-        description: "Thank you for your purchase. You will receive a confirmation email shortly.",
+        title: t("checkout.orderSuccess"),
+        description: t("checkout.thankYouMessage", { defaultValue: "Thank you for your purchase. You will receive a confirmation email shortly." }),
       });
       clearCart();
       setLocation("/order-success");
     },
     onError: (error: any) => {
       toast({
-        title: "Order failed",
-        description: error.message || "Something went wrong. Please try again.",
+        title: t("checkout.orderError"),
+        description: error.message || t("checkout.errorMessage", { defaultValue: "Something went wrong. Please try again." }),
         variant: "destructive",
       });
       setIsProcessing(false);
@@ -122,8 +124,8 @@ export default function Checkout() {
   const onSubmit = async (data: CheckoutFormData) => {
     if (items.length === 0) {
       toast({
-        title: "Cart is empty",
-        description: "Please add items to your cart before checking out.",
+        title: t("cart.empty"),
+        description: t("checkout.addItemsMessage", { defaultValue: "Please add items to your cart before checking out." }),
         variant: "destructive",
       });
       return;
@@ -179,9 +181,9 @@ export default function Checkout() {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center space-y-4">
-          <h2 className="font-serif text-2xl">Your cart is empty</h2>
+          <h2 className="font-serif text-2xl">{t("cart.empty")}</h2>
           <Link href="/products">
-            <Button data-testid="button-continue-shopping">Continue Shopping</Button>
+            <Button data-testid="button-continue-shopping">{t("cart.continueShopping")}</Button>
           </Link>
         </div>
       </div>
@@ -194,11 +196,11 @@ export default function Checkout() {
         <Link href="/products">
           <Button variant="ghost" className="mb-8" data-testid="button-back">
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Products
+            {t("productDetail.backToProducts")}
           </Button>
         </Link>
 
-        <h1 className="font-serif text-3xl lg:text-4xl font-light mb-8">Checkout</h1>
+        <h1 className="font-serif text-3xl lg:text-4xl font-light mb-8">{t("checkout.title")}</h1>
 
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Checkout Form */}
@@ -207,16 +209,16 @@ export default function Checkout() {
               <form onSubmit={form.handleSubmit(onSubmit)}>
                 <fieldset disabled={isProcessing} aria-busy={isProcessing} className={`space-y-6 ${isProcessing ? "opacity-60 pointer-events-none" : ""}`}>
                 <Card className="p-6">
-                  <h2 className="font-serif text-xl mb-4">Contact Information</h2>
+                  <h2 className="font-serif text-xl mb-4">{t("checkout.contactInfo", { defaultValue: "Contact Information" })}</h2>
                   <div className="space-y-4">
                     <FormField
                       control={form.control}
                       name="customerName"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Full Name</FormLabel>
+                          <FormLabel>{t("checkout.fullName")}</FormLabel>
                           <FormControl>
-                            <Input {...field} data-testid="input-name" placeholder="Enter your full name" />
+                            <Input {...field} data-testid="input-name" placeholder={t("checkout.fullNamePlaceholder", { defaultValue: "Enter your full name" })} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -227,13 +229,13 @@ export default function Checkout() {
                       name="customerEmail"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Email</FormLabel>
+                          <FormLabel>{t("checkout.email")}</FormLabel>
                           <FormControl>
                             <Input
                               {...field}
                               type="email"
                               data-testid="input-email"
-                              placeholder="john@example.com"
+                              placeholder={t("checkout.emailPlaceholder", { defaultValue: "john@example.com" })}
                             />
                           </FormControl>
                           <FormMessage />
@@ -245,13 +247,13 @@ export default function Checkout() {
                       name="customerPhone"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Phone Number</FormLabel>
+                          <FormLabel>{t("checkout.phone")}</FormLabel>
                           <FormControl>
                             <Input
                               {...field}
                               type="tel"
                               data-testid="input-phone"
-                              placeholder="+62 812 3456 7890"
+                              placeholder={t("checkout.phonePlaceholder", { defaultValue: "+62 812 3456 7890" })}
                             />
                           </FormControl>
                           <FormMessage />
@@ -262,19 +264,19 @@ export default function Checkout() {
                 </Card>
 
                 <Card className="p-6">
-                  <h2 className="font-serif text-xl mb-4">Shipping Address</h2>
+                  <h2 className="font-serif text-xl mb-4">{t("checkout.shippingAddress", { defaultValue: "Shipping Address" })}</h2>
                   <div className="space-y-4">
                     <FormField
                       control={form.control}
                       name="shippingAddress"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Street Address</FormLabel>
+                          <FormLabel>{t("checkout.address")}</FormLabel>
                           <FormControl>
                             <Input
                               {...field}
                               data-testid="input-address"
-                              placeholder="123 Main Street"
+                              placeholder={t("checkout.addressPlaceholder", { defaultValue: "123 Main Street" })}
                             />
                           </FormControl>
                           <FormMessage />
@@ -287,9 +289,9 @@ export default function Checkout() {
                         name="shippingCity"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>City</FormLabel>
+                            <FormLabel>{t("checkout.city")}</FormLabel>
                             <FormControl>
-                              <Input {...field} data-testid="input-city" placeholder="Jakarta" />
+                              <Input {...field} data-testid="input-city" placeholder={t("checkout.cityPlaceholder", { defaultValue: "Jakarta" })} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -300,9 +302,9 @@ export default function Checkout() {
                         name="shippingPostalCode"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Postal Code</FormLabel>
+                            <FormLabel>{t("checkout.zipCode")}</FormLabel>
                             <FormControl>
-                              <Input {...field} data-testid="input-postal" placeholder="12345" />
+                              <Input {...field} data-testid="input-postal" placeholder={t("checkout.zipCodePlaceholder", { defaultValue: "12345" })} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -314,7 +316,7 @@ export default function Checkout() {
                       name="shippingCountry"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Country</FormLabel>
+                          <FormLabel>{t("checkout.country")}</FormLabel>
                           <FormControl>
                             <Input {...field} data-testid="input-country" />
                           </FormControl>
@@ -326,14 +328,14 @@ export default function Checkout() {
                 </Card>
 
                 <Card className="p-6">
-                  <h2 className="font-serif text-xl mb-4">Payment Method</h2>
+                  <h2 className="font-serif text-xl mb-4">{t("checkout.paymentMethod")}</h2>
                   <div className="space-y-4">
                     <div className="flex items-center gap-3 p-4 border rounded-md">
                       <CreditCard className="h-5 w-5 text-muted-foreground" />
                       <div className="flex-1">
-                        <p className="font-medium">Simulated Payment</p>
+                        <p className="font-medium">{t("checkout.simulatedPayment", { defaultValue: "Simulated Payment" })}</p>
                         <p className="text-sm text-muted-foreground">
-                          This is a demo - no actual payment will be processed
+                          {t("checkout.demoPaymentNote", { defaultValue: "This is a demo - no actual payment will be processed" })}
                         </p>
                       </div>
                       <Shield className="h-5 w-5 text-primary" />
@@ -348,7 +350,7 @@ export default function Checkout() {
                     data-testid="button-place-order"
                   >
                     {isProcessing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    {isProcessing ? "Processing..." : "Place Order"}
+                    {isProcessing ? t("checkout.processing") : t("checkout.placeOrder")}
                   </Button>
                 </fieldset>
               </form>
@@ -358,7 +360,7 @@ export default function Checkout() {
           {/* Order Summary */}
           <div className="lg:col-span-1">
             <Card className="p-6 sticky top-20">
-              <h2 className="font-serif text-xl mb-4">Order Summary</h2>
+              <h2 className="font-serif text-xl mb-4">{t("checkout.orderSummary")}</h2>
               <div className="space-y-4">
                 {items.map((item) => {
                   const itemKey = `${item.product.id}-${item.size || "default"}`;
@@ -380,9 +382,9 @@ export default function Checkout() {
                       <div className="flex-1">
                         <p className="font-medium text-sm">{item.product.name}</p>
                         {item.size && (
-                          <p className="text-xs text-muted-foreground">Size: {item.size}</p>
+                          <p className="text-xs text-muted-foreground">{t("cart.size")}: {item.size}</p>
                         )}
-                        <p className="text-xs text-muted-foreground">Qty: {item.quantity}</p>
+                        <p className="text-xs text-muted-foreground">{t("checkout.qty", { defaultValue: "Qty" })}: {item.quantity}</p>
                         <p className="text-sm font-medium mt-1">{formattedPrice}</p>
                       </div>
                     </div>
@@ -394,25 +396,25 @@ export default function Checkout() {
 
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span>Subtotal</span>
+                  <span>{t("cart.subtotal")}</span>
                   <span>{formattedTotal}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span>Shipping</span>
-                  <span>{shippingCost === 0 ? "FREE" : formattedShipping}</span>
+                  <span>{t("checkout.shipping", { defaultValue: "Shipping" })}</span>
+                  <span>{shippingCost === 0 ? t("checkout.freeShipping", { defaultValue: "FREE" }) : formattedShipping}</span>
                 </div>
               </div>
 
               <Separator className="my-4" />
 
               <div className="flex justify-between font-serif text-lg font-semibold">
-                <span>Total</span>
+                <span>{t("cart.total")}</span>
                 <span data-testid="text-order-total">{formattedFinalTotal}</span>
               </div>
 
               {items.some((item) => item.product.isPreOrder) && (
                 <Badge variant="secondary" className="mt-4 w-full justify-center">
-                  Contains Pre-Order Items
+                  {t("checkout.containsPreOrder", { defaultValue: "Contains Pre-Order Items" })}
                 </Badge>
               )}
             </Card>

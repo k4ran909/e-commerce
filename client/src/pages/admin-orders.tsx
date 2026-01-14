@@ -14,6 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useTranslation } from "react-i18next";
 
 interface OrderItem {
   id: string;
@@ -44,6 +45,7 @@ interface Order {
 }
 
 export default function AdminOrders() {
+  const { t } = useTranslation();
   const { me, loading: authLoading } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -51,8 +53,8 @@ export default function AdminOrders() {
   const [filterStatus, setFilterStatus] = useState<string>("all");
 
   useEffect(() => {
-    document.title = "Manage Orders - Admin";
-  }, []);
+    document.title = t('admin.manageOrdersTitle');
+  }, [t]);
 
   const { data: orders = [], isLoading, isError } = useQuery({
     queryKey: ["/api/orders"],
@@ -60,7 +62,7 @@ export default function AdminOrders() {
       const res = await fetch("/api/orders", {
         credentials: "include",
       });
-      if (!res.ok) throw new Error("Failed to fetch orders");
+      if (!res.ok) throw new Error(t('admin.failedToLoadOrders'));
       return res.json();
     },
     enabled: !!me && !authLoading && me.role === "admin",
@@ -74,18 +76,18 @@ export default function AdminOrders() {
         credentials: "include",
         body: JSON.stringify({ status }),
       });
-      if (!res.ok) throw new Error("Failed to update order status");
+      if (!res.ok) throw new Error(t('admin.failedToUpdateStatus'));
       return res.json();
     },
     onSuccess: () => {
-      toast({ title: "Order status updated successfully" });
+      toast({ title: t('admin.orderStatusUpdated') });
       queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/summary"] });
       setSelectedOrder(null);
     },
     onError: (error: any) => {
       toast({ 
-        title: "Failed to update order status", 
+        title: t('admin.failedToUpdateStatus'), 
         description: error.message, 
         variant: "destructive" 
       });
@@ -111,9 +113,9 @@ export default function AdminOrders() {
   if (!me || me.role !== "admin") {
     return (
       <div className="container mx-auto p-6">
-        <p className="mb-4">Unauthorized. Admins only.</p>
+        <p className="mb-4">{t('admin.unauthorized')}. {t('admin.adminsOnly')}</p>
         <Link href="/products">
-          <Button>Browse products</Button>
+          <Button>{t('products.title')}</Button>
         </Link>
       </div>
     );
@@ -160,8 +162,8 @@ export default function AdminOrders() {
             </Button>
           </Link>
           <div>
-            <h1 className="font-serif text-3xl lg:text-4xl font-light">Manage Orders</h1>
-            <p className="text-muted-foreground">View and update order statuses</p>
+            <h1 className="font-serif text-3xl lg:text-4xl font-light">{t('admin.manageOrdersTitle')}</h1>
+            <p className="text-muted-foreground">{t('admin.viewUpdateStatuses')}</p>
           </div>
         </div>
       </div>
@@ -170,20 +172,20 @@ export default function AdminOrders() {
         <div className="flex items-center gap-2">
           <Package className="h-5 w-5 text-muted-foreground" />
           <span className="text-sm text-muted-foreground">
-            {filteredOrders.length} order{filteredOrders.length !== 1 ? 's' : ''}
+            {t('admin.ordersCount', { count: filteredOrders.length })}
           </span>
         </div>
         <div className="w-full sm:w-auto">
           <Select value={filterStatus} onValueChange={setFilterStatus}>
             <SelectTrigger className="w-full sm:w-[200px]">
-              <SelectValue placeholder="Filter by status" />
+              <SelectValue placeholder={t('admin.filterByStatus')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Orders</SelectItem>
-              <SelectItem value="pending">Pending</SelectItem>
-              <SelectItem value="processing">Processing</SelectItem>
-              <SelectItem value="completed">Completed</SelectItem>
-              <SelectItem value="cancelled">Cancelled</SelectItem>
+              <SelectItem value="all">{t('admin.allOrders')}</SelectItem>
+              <SelectItem value="pending">{t('orderStatus.pending')}</SelectItem>
+              <SelectItem value="processing">{t('orderStatus.processing')}</SelectItem>
+              <SelectItem value="completed">{t('orderStatus.completed')}</SelectItem>
+              <SelectItem value="cancelled">{t('orderStatus.cancelled')}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -191,7 +193,7 @@ export default function AdminOrders() {
 
       {isError && (
         <Card className="p-4 bg-red-50 border-red-200 mb-6">
-          <p className="text-red-700">Failed to load orders. Please try again.</p>
+          <p className="text-red-700">{t('admin.failedToLoadOrders')}</p>
         </Card>
       )}
 
@@ -209,11 +211,11 @@ export default function AdminOrders() {
         <Card className="p-8 text-center">
           <Package className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
           <p className="text-muted-foreground mb-4">
-            {filterStatus === "all" ? "No orders found" : `No ${filterStatus} orders`}
+            {filterStatus === "all" ? t('admin.noOrdersFound') : t('admin.noStatusOrders', { status: filterStatus })}
           </p>
           {filterStatus !== "all" && (
             <Button variant="outline" onClick={() => setFilterStatus("all")}>
-              Show All Orders
+              {t('admin.showAllOrders')}
             </Button>
           )}
         </Card>
@@ -235,15 +237,14 @@ export default function AdminOrders() {
                   
                   <div className="mt-3 space-y-2 text-sm">
                     <div>
-                      <span className="text-muted-foreground">Customer:</span>{" "}
+                      <span className="text-muted-foreground">{t('admin.customer')}:</span>{" "}
                       <span className="font-medium">{order.customerName}</span>
                     </div>
                     <div>
-                      <span className="text-muted-foreground">Email:</span> {order.customerEmail}
+                      <span className="text-muted-foreground">{t('admin.email')}:</span> {order.customerEmail}
                     </div>
                     <div>
-                      <span className="text-muted-foreground">Items:</span> {order.items.length} item
-                      {order.items.length !== 1 ? "s" : ""}
+                      <span className="text-muted-foreground">{t('admin.items')}:</span> {order.items.length} {t(order.items.length === 1 ? 'admin.item' : 'admin.items')}
                     </div>
                   </div>
                 </div>
@@ -279,7 +280,7 @@ export default function AdminOrders() {
                       onClick={() => setSelectedOrder(order)}
                     >
                       <Eye className="h-4 w-4 mr-2" />
-                      View Details
+                      {t('admin.viewDetails')}
                     </Button>
                     {order.status === "pending" && (
                       <Button
@@ -289,7 +290,7 @@ export default function AdminOrders() {
                         }
                         disabled={updateStatusMutation.isPending}
                       >
-                        Start Processing
+                        {t('admin.startProcessing')}
                       </Button>
                     )}
                     {order.status === "processing" && (
@@ -301,7 +302,7 @@ export default function AdminOrders() {
                         disabled={updateStatusMutation.isPending}
                       >
                         <CheckCircle className="h-4 w-4 mr-2" />
-                        Complete
+                        {t('admin.complete')}
                       </Button>
                     )}
                   </div>
@@ -323,7 +324,7 @@ export default function AdminOrders() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex justify-between items-start mb-6">
-              <h2 className="font-serif text-2xl font-light">Order Details</h2>
+              <h2 className="font-serif text-2xl font-light">{t('admin.orderDetails')}</h2>
               <button
                 onClick={() => setSelectedOrder(null)}
                 className="text-2xl leading-none hover:text-muted-foreground"
@@ -336,23 +337,23 @@ export default function AdminOrders() {
               {/* Order Info */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-sm text-muted-foreground">Order ID</p>
+                  <p className="text-sm text-muted-foreground">{t('admin.orderId')}</p>
                   <p className="font-medium font-mono">{selectedOrder.id}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Order Date</p>
+                  <p className="text-sm text-muted-foreground">{t('admin.orderDate')}</p>
                   <p className="font-medium">
                     {new Date(selectedOrder.createdAt).toLocaleDateString()}
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Total Amount</p>
+                  <p className="text-sm text-muted-foreground">{t('admin.totalAmount')}</p>
                   <p className="font-serif text-xl font-light">
                     ${(selectedOrder.totalAmount / 100).toFixed(2)}
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Status</p>
+                  <p className="text-sm text-muted-foreground">{t('admin.status')}</p>
                   <div className="flex gap-2 mt-1">
                     <span className={`text-xs px-2 py-1 rounded-full ${getStatusColor(selectedOrder.paymentStatus)}`}>
                       {selectedOrder.paymentStatus}
@@ -366,18 +367,18 @@ export default function AdminOrders() {
 
               {/* Customer Info */}
               <div className="border-t pt-4">
-                <h3 className="font-medium mb-3">Customer Information</h3>
+                <h3 className="font-medium mb-3">{t('admin.customerInformation')}</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                   <div>
-                    <p className="text-muted-foreground">Name</p>
+                    <p className="text-muted-foreground">{t('admin.name')}</p>
                     <p className="font-medium">{selectedOrder.customerName}</p>
                   </div>
                   <div>
-                    <p className="text-muted-foreground">Email</p>
+                    <p className="text-muted-foreground">{t('admin.email')}</p>
                     <p className="font-medium">{selectedOrder.customerEmail}</p>
                   </div>
                   <div className="md:col-span-2">
-                    <p className="text-muted-foreground">Phone</p>
+                    <p className="text-muted-foreground">{t('admin.phone')}</p>
                     <p className="font-medium">{selectedOrder.customerPhone}</p>
                   </div>
                 </div>
@@ -385,7 +386,7 @@ export default function AdminOrders() {
 
               {/* Shipping Info */}
               <div className="border-t pt-4">
-                <h3 className="font-medium mb-3">Shipping Address</h3>
+                <h3 className="font-medium mb-3">{t('admin.shippingAddress')}</h3>
                 <div className="text-sm text-muted-foreground">
                   <p>{selectedOrder.shippingAddress}</p>
                   <p>
@@ -397,15 +398,15 @@ export default function AdminOrders() {
 
               {/* Items */}
               <div className="border-t pt-4">
-                <h3 className="font-medium mb-4">Order Items</h3>
+                <h3 className="font-medium mb-4">{t('admin.orderItems')}</h3>
                 <div className="space-y-3">
                   {selectedOrder.items.map((item: OrderItem) => (
                     <div key={item.id} className="flex justify-between text-sm border-b pb-3">
                       <div>
                         <p className="font-medium">{item.productName}</p>
                         <p className="text-xs text-muted-foreground">
-                          Quantity: {item.quantity}
-                          {item.size && <span> | Size: {item.size}</span>}
+                          {t('admin.quantity')}: {item.quantity}
+                          {item.size && <span> | {t('admin.size')}: {item.size}</span>}
                         </p>
                       </div>
                       <p className="font-medium">
@@ -419,7 +420,7 @@ export default function AdminOrders() {
               {/* Total */}
               <div className="bg-muted p-4 rounded-lg">
                 <div className="flex justify-between font-medium text-lg">
-                  <span>Total</span>
+                  <span>{t('admin.total')}</span>
                   <span className="font-serif font-light">
                     ${(selectedOrder.totalAmount / 100).toFixed(2)}
                   </span>
@@ -429,7 +430,7 @@ export default function AdminOrders() {
               {/* Actions */}
               <div className="flex gap-2 pt-4 border-t">
                 <Button variant="outline" className="flex-1" onClick={() => setSelectedOrder(null)}>
-                  Close
+                  {t('common.close')}
                 </Button>
                 {selectedOrder.status === "pending" && (
                   <Button
@@ -442,7 +443,7 @@ export default function AdminOrders() {
                     }}
                     disabled={updateStatusMutation.isPending}
                   >
-                    Start Processing
+                    {t('admin.startProcessing')}
                   </Button>
                 )}
                 {selectedOrder.status === "processing" && (
@@ -457,7 +458,7 @@ export default function AdminOrders() {
                     disabled={updateStatusMutation.isPending}
                   >
                     <CheckCircle className="h-4 w-4 mr-2" />
-                    Mark as Completed
+                    {t('admin.markAsCompleted')}
                   </Button>
                 )}
                 {(selectedOrder.status === "pending" || selectedOrder.status === "processing") && (
@@ -473,7 +474,7 @@ export default function AdminOrders() {
                     disabled={updateStatusMutation.isPending}
                   >
                     <XCircle className="h-4 w-4 mr-2" />
-                    Cancel Order
+                    {t('admin.cancelOrder')}
                   </Button>
                 )}
               </div>

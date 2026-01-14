@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { ShoppingBag, Search, Menu, X, User, ChevronRight, ChevronLeft, Monitor, Moon, Sun, Check, Home as HomeIcon, Gem } from "lucide-react";
+import { ShoppingBag, Search, Menu, X, User, ChevronRight, ChevronLeft, Monitor, Moon, Sun, Check, Home as HomeIcon, Gem, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "./theme-toggle";
 import { useTheme } from "@/lib/theme-context";
@@ -13,11 +13,14 @@ import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { Confirm } from "@/components/ui/confirm-dialog";
 import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useTranslation } from "react-i18next";
+import { LanguageSelector } from "@/components/language-selector";
 
 export function Header() {
+  const { t } = useTranslation();
   const [location, setLocation] = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [mobilePanel, setMobilePanel] = useState<'root' | 'theme'>('root');
+  const [mobilePanel, setMobilePanel] = useState<'root' | 'theme' | 'language'>('root');
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const { totalItems, toggleCart } = useCart();
@@ -31,8 +34,8 @@ export function Header() {
   }, [isAuthRoute, authOpen]);
 
   const navLinks = [
-    { path: "/", label: "Home" },
-    { path: "/products", label: "Products" },
+    { path: "/", label: t('header.home') },
+    { path: "/products", label: t('header.products') },
   ];
 
   const onSubmitSearch = (e: FormEvent) => {
@@ -134,6 +137,7 @@ export function Header() {
 
           {/* Desktop-only: Theme + Cart + Profile */}
           <div className="hidden lg:flex items-center gap-2">
+            <LanguageSelector />
             <ThemeToggle />
 
             {/* Profile / Auth */}
@@ -158,25 +162,25 @@ export function Header() {
                 <DropdownMenu.Content sideOffset={8} className="min-w-[200px] rounded-md border bg-popover p-2 shadow-md focus:outline-none">
                   <div className="px-2 py-1.5 text-xs text-muted-foreground">{me.email}</div>
                   <DropdownMenu.Item asChild>
-                    <Link href="/dashboard" className="focus:outline-none focus:ring-2 focus:ring-ring block px-2 py-1 rounded hover:bg-muted text-sm cursor-pointer">Account</Link>
+                    <Link href="/dashboard" className="focus:outline-none focus:ring-2 focus:ring-ring block px-2 py-1 rounded hover:bg-muted text-sm cursor-pointer">{t('header.myAccount')}</Link>
                   </DropdownMenu.Item>
                   {me.role === "admin" && (
                     <DropdownMenu.Item asChild>
-                      <Link href="/admin" className="focus:outline-none focus:ring-2 focus:ring-ring block px-2 py-1 rounded hover:bg-muted text-sm cursor-pointer">Admin Dashboard</Link>
+                      <Link href="/admin" className="focus:outline-none focus:ring-2 focus:ring-ring block px-2 py-1 rounded hover:bg-muted text-sm cursor-pointer">{t('header.admin')}</Link>
                     </DropdownMenu.Item>
                   )}
                   <DropdownMenu.Separator className="my-1 h-px bg-border" />
                   <Confirm
-                    title="Confirm Logout"
-                    description="Are you sure you want to sign out of your account?"
-                    confirmLabel="Logout"
+                    title={t('header.logout')}
+                    description={t('auth.login.success')}
+                    confirmLabel={t('header.logout')}
                     onConfirm={logout}
                   >
                     <DropdownMenu.Item
                       onSelect={(e) => e.preventDefault()}
                       className="w-full text-left px-2 py-1 rounded hover:bg-destructive/15 text-sm focus:outline-none focus:ring-2 focus:ring-destructive"
                     >
-                      Logout
+                      {t('header.logout')}
                     </DropdownMenu.Item>
                   </Confirm>
                 </DropdownMenu.Content>
@@ -226,7 +230,7 @@ export function Header() {
                 autoFocus
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search products..."
+                placeholder={t('common.search')}
                 data-testid="input-search"
                 className="pl-10 h-10 rounded-xl bg-muted/30 border border-border text-base"
               />
@@ -270,8 +274,8 @@ export function Header() {
 }
 
 function MobileMenuContent({ panel, setPanel, close, navLinks, me, logout, location, setLocation }: {
-  panel: 'root' | 'theme';
-  setPanel: (p: 'root' | 'theme') => void;
+  panel: 'root' | 'theme' | 'language';
+  setPanel: (p: 'root' | 'theme' | 'language') => void;
   close: () => void;
   navLinks: { path: string; label: string }[];
   me: { email: string; role: string } | null;
@@ -279,7 +283,47 @@ function MobileMenuContent({ panel, setPanel, close, navLinks, me, logout, locat
   location: string;
   setLocation: (path: string) => void;
 }) {
+  const { t, i18n } = useTranslation();
   const { preference, activeTheme, setPreference } = useTheme();
+
+  // Language Panel
+  if (panel === 'language') {
+    const languages = [
+      { code: 'en', name: 'English', flag: '🇺🇸' },
+      { code: 'es', name: 'Español', flag: '🇪🇸' },
+      { code: 'fr', name: 'Français', flag: '🇫🇷' },
+      { code: 'id', name: 'Bahasa Indonesia', flag: '🇮🇩' },
+    ];
+    
+    return (
+      <div className="h-full flex flex-col">
+        <div className="flex items-center gap-2 h-14 border-b">
+          <Button variant="ghost" size="icon" onClick={() => setPanel('root')} className="rounded-full -ml-2">
+            <ChevronLeft className="h-5 w-5" />
+            <span className="sr-only">Back</span>
+          </Button>
+          <div className="text-sm font-medium">Language</div>
+        </div>
+        <ul className="flex-1 overflow-auto py-2">
+          {languages.map(lang => {
+            const active = i18n.language === lang.code;
+            return (
+              <li key={lang.code}>
+                <button
+                  onClick={() => i18n.changeLanguage(lang.code)}
+                  className={`w-full flex items-center gap-3 px-4 py-3 text-sm text-left transition-colors ${active ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'}`}
+                >
+                  <span className="text-2xl">{lang.flag}</span>
+                  <span className="flex-1">{lang.name}</span>
+                  {active && <Check className="h-4 w-4" />}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+    );
+  }
 
   if (panel === 'theme') {
     const options: { key: 'system' | 'light' | 'dark'; label: string; icon: React.ReactNode }[] = [
@@ -356,6 +400,17 @@ function MobileMenuContent({ panel, setPanel, close, navLinks, me, logout, locat
             <ChevronRight className="h-4 w-4" />
           </button>
         </li>
+        {/* Language */}
+        <li>
+          <button
+            onClick={() => setPanel('language')}
+            className="w-full flex items-center gap-3 px-4 py-3 text-sm text-left hover:bg-muted"
+          >
+            <Globe className="h-5 w-5" />
+            <span className="flex-1">Language</span>
+            <ChevronRight className="h-4 w-4" />
+          </button>
+        </li>
         {/* Separator */}
         <li className="my-2 h-px bg-border" />
         {/* Auth / Profile */}
@@ -370,7 +425,7 @@ function MobileMenuContent({ panel, setPanel, close, navLinks, me, logout, locat
               className="w-full flex items-center gap-3 px-4 py-3 text-sm text-left hover:bg-muted"
             >
               <User className="h-5 w-5" />
-              <span className="flex-1">Sign in / Register</span>
+              <span className="flex-1">{t('header.login')} / {t('header.register')}</span>
             </button>
           </li>
         ) : (
@@ -381,7 +436,7 @@ function MobileMenuContent({ panel, setPanel, close, navLinks, me, logout, locat
                 className="w-full flex items-center gap-3 px-4 py-3 text-sm text-left hover:bg-muted"
               >
                 <User className="h-5 w-5" />
-                <span className="flex-1">Profile</span>
+                <span className="flex-1">{t('header.myAccount')}</span>
               </button>
             </Link>
           </li>

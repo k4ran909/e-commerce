@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import PasswordInput from "@/components/ui/password-input";
 import { useAuth } from "@/lib/auth-context";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslation } from "react-i18next";
 
 export function AuthModal({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
   const { login, register } = useAuth();
@@ -13,7 +14,8 @@ export function AuthModal({ open, onOpenChange }: { open: boolean; onOpenChange:
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const title = mode === "login" ? "Welcome Back" : "Create Account";
+  const { t } = useTranslation();
+  const title = mode === "login" ? t('authModal.welcomeBack') : t('authModal.createAccount');
   const { toast } = useToast();
 
   const onSubmit = async (e: React.FormEvent) => {
@@ -22,12 +24,12 @@ export function AuthModal({ open, onOpenChange }: { open: boolean; onOpenChange:
       const emailOk = /.+@.+\..+/.test(email);
       if (!name.trim() || !emailOk || password.length < 6) {
         toast({
-          title: "Invalid details",
+          title: t('authModal.validation.invalidDetails'),
           description: !name.trim()
-            ? "Please enter your full name."
+            ? t('authModal.validation.nameRequired')
             : !emailOk
-            ? "Please enter a valid email address."
-            : "Password must be at least 6 characters.",
+            ? t('authModal.validation.emailInvalid')
+            : t('authModal.validation.passwordMin'),
           variant: "destructive",
         });
         return;
@@ -57,21 +59,21 @@ export function AuthModal({ open, onOpenChange }: { open: boolean; onOpenChange:
         <Dialog.Content className="fixed z-[61] left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[92vw] max-w-xl rounded-2xl border bg-card p-6 shadow-xl focus:outline-none">
           <Dialog.Title className="font-serif text-3xl text-center mb-6">{title}</Dialog.Title>
           <Dialog.Description className="sr-only">
-            Login to your account or create a new one to continue shopping.
+            {t('authModal.description')}
           </Dialog.Description>
           <form className="space-y-4" onSubmit={onSubmit}>
             {mode === "register" && (
               <div>
-                <label className="block text-sm mb-2">Full Name</label>
-                <Input placeholder="Enter your full name" value={name} onChange={(e) => setName(e.target.value)} required disabled={loading} />
+                <label className="block text-sm mb-2">{t('authModal.fullName')}</label>
+                <Input placeholder={t('authModal.fullNamePlaceholder')} value={name} onChange={(e) => setName(e.target.value)} required disabled={loading} />
               </div>
             )}
             <div>
-              <label className="block text-sm mb-2">Email</label>
-              <Input type="email" placeholder="Enter your email address" value={email} onChange={(e) => setEmail(e.target.value)} required disabled={loading} />
+              <label className="block text-sm mb-2">{t('authModal.email')}</label>
+              <Input type="email" placeholder={t('authModal.emailPlaceholder')} value={email} onChange={(e) => setEmail(e.target.value)} required disabled={loading} />
             </div>
             <div>
-              <label className="block text-sm mb-2">Password</label>
+              <label className="block text-sm mb-2">{t('authModal.password')}</label>
               <PasswordInput value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} disabled={loading} />
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
@@ -81,24 +83,24 @@ export function AuthModal({ open, onOpenChange }: { open: boolean; onOpenChange:
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
                   </svg>
-                  {mode === "login" ? "Logging in..." : "Creating account..."}
+                  {mode === "login" ? t('authModal.loggingIn') : t('authModal.creatingAccount')}
                 </span>
               ) : (
-                mode === "login" ? "Login" : "Register"
+                mode === "login" ? t('authModal.login') : t('authModal.register')
               )}
             </Button>
           </form>
 
           <div className="text-center text-muted-foreground mt-6">
             {mode === "login" ? (
-              <button className="underline" onClick={() => setMode("register")}>Don't have an account? Register</button>
+              <button className="underline" onClick={() => setMode("register")}>{t('authModal.noAccount')}</button>
             ) : (
-              <button className="underline" onClick={() => setMode("login")}>Already have an account? Login</button>
+              <button className="underline" onClick={() => setMode("login")}>{t('authModal.hasAccount')}</button>
             )}
           </div>
 
           <Dialog.Close asChild>
-            <button aria-label="Close" className="absolute right-3 top-3 rounded-full p-2 hover:bg-muted">✕</button>
+            <button aria-label={t('authModal.close')} className="absolute right-3 top-3 rounded-full p-2 hover:bg-muted">✕</button>
           </Dialog.Close>
         </Dialog.Content>
       </Dialog.Portal>

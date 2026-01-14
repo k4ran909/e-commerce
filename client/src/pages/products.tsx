@@ -6,8 +6,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import type { Product } from "@shared/schema";
 import { useState, useEffect, useMemo } from "react";
 import { useLocation, useRoute } from "wouter";
+import { useTranslation } from "react-i18next";
 
 export default function Products() {
+  const { t } = useTranslation();
   const [location, setLocation] = useLocation();
   const [matchCat, params] = useRoute("/products/category/:category");
   const [searchStr, setSearchStr] = useState<string>(typeof window !== "undefined" ? window.location.search : "");
@@ -42,11 +44,11 @@ export default function Products() {
   });
 
   const categories = [
-    { value: "all", label: "All Jewelry" },
-    { value: "rings", label: "Rings" },
-    { value: "necklaces", label: "Necklaces" },
-    { value: "bracelets", label: "Bracelets" },
-    { value: "earrings", label: "Earrings" },
+    { value: "all", label: t('products.all') },
+    { value: "rings", label: t('products.rings') },
+    { value: "necklaces", label: t('products.necklaces') },
+    { value: "bracelets", label: t('products.bracelets') },
+    { value: "earrings", label: t('products.earrings') },
   ];
 
   const filteredProducts = useMemo(() => {
@@ -73,13 +75,13 @@ export default function Products() {
         <div className="mb-8">
           <h1 className="font-serif text-3xl lg:text-4xl font-light mb-2">
             {query
-              ? `Results for "${query}"`
+              ? t('products.searchResults', { query })
               : selectedCategory === "all"
-              ? "Products"
+              ? t('products.title')
               : categories.find((c) => c.value === selectedCategory)?.label}
           </h1>
           <p className="text-muted-foreground">
-            {filteredProducts.length} {filteredProducts.length === 1 ? "product" : "products"}
+            {filteredProducts.length} {filteredProducts.length === 1 ? t('products.product') : t('products.products')}
           </p>
         </div>
 
@@ -110,13 +112,13 @@ export default function Products() {
           <div className="sm:ml-auto w-full sm:w-48">
             <Select value={sortBy} onValueChange={setSortBy}>
               <SelectTrigger data-testid="select-sort">
-                <SelectValue placeholder="Sort by" />
+                <SelectValue placeholder={t('products.sortBy')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="featured">Featured</SelectItem>
-                <SelectItem value="price-asc">Price: Low to High</SelectItem>
-                <SelectItem value="price-desc">Price: High to Low</SelectItem>
-                <SelectItem value="name">Name</SelectItem>
+                <SelectItem value="featured">{t('products.sort.featured')}</SelectItem>
+                <SelectItem value="price-asc">{t('products.sort.priceLowToHigh')}</SelectItem>
+                <SelectItem value="price-desc">{t('products.sort.priceHighToLow')}</SelectItem>
+                <SelectItem value="name">{t('products.sort.name')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -136,7 +138,7 @@ export default function Products() {
         ) : filteredProducts.length === 0 ? (
           <div className="text-center py-12">
             <p className="text-muted-foreground text-lg">
-              {query ? "No products match your search" : "No products found in this category"}
+              {query ? t('products.noSearchResults') : t('products.noCategoryResults')}
             </p>
           </div>
         ) : (

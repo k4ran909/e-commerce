@@ -2,8 +2,11 @@ import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { CheckCircle, Receipt } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 export default function OrderSuccess() {
+  const { t } = useTranslation();
+  
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-4">
       <Card className="max-w-md w-full p-8 text-center">
@@ -13,27 +16,26 @@ export default function OrderSuccess() {
           </div>
         </div>
         <h1 className="font-serif text-2xl lg:text-3xl font-light mb-4">
-          Order Placed Successfully!
+          {t('checkout.orderSuccess')}
         </h1>
         <p className="text-muted-foreground mb-8">
-          Thank you for your purchase. You will receive a confirmation email shortly
-          with your order details and tracking information.
+          {t('checkout.thankYouMessage')}
         </p>
         <div className="space-y-3">
           <Link href="/purchase-history">
             <Button className="w-full" data-testid="button-view-orders">
               <Receipt className="h-4 w-4 mr-2" />
-              View My Orders
+              {t('dashboard.orders')}
             </Button>
           </Link>
           <Link href="/products">
             <Button variant="outline" className="w-full" data-testid="button-continue-shopping">
-              Continue Shopping
+              {t('cart.continueShopping')}
             </Button>
           </Link>
           <Link href="/">
             <Button variant="outline" className="w-full" data-testid="button-back-home">
-              Back to Home
+              {t('common.back')} {t('header.home')}
             </Button>
           </Link>
         </div>

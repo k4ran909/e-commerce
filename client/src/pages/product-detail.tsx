@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useRoute, Link } from "wouter";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -16,6 +17,7 @@ import { useAuth } from "@/lib/auth-context";
 import { useLocation } from "wouter";
 
 export default function ProductDetail() {
+  const { t } = useTranslation();
   const [, params] = useRoute("/product/:id");
   const { data: product, isLoading } = useQuery<Product>({
     queryKey: ["/api/products", params?.id],
@@ -31,7 +33,7 @@ export default function ProductDetail() {
   const paramsSearch = new URLSearchParams(search);
   const from = paramsSearch.get("from");
   const backHref = from === "admin" ? "/admin" : "/products";
-  const backLabel = from === "admin" ? "Back to Dashboard" : "Back to Products";
+  const backLabel = from === "admin" ? t('common.back') + " to " + t('header.dashboard') : t('productDetail.backToProducts');
 
   if (isLoading) {
     return (
@@ -56,7 +58,7 @@ export default function ProductDetail() {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <h2 className="font-serif text-2xl mb-4">Product not found</h2>
+          <h2 className="font-serif text-2xl mb-4">{t('products.noProducts')}</h2>
           <Link href={backHref}>
             <Button>{backLabel}</Button>
           </Link>
@@ -73,14 +75,14 @@ export default function ProductDetail() {
 
   const handleAddToCart = () => {
     if (!me) {
-      toast({ title: "Login required", description: "Please log in to add items to your cart.", variant: "destructive" });
+      toast({ title: t('cart.loginRequired'), description: t('cart.loginToCheckout'), variant: "destructive" });
       const current = window.location.pathname + window.location.search;
       setLocation(`/login?returnTo=${encodeURIComponent(current)}`);
       return;
     }
     if (product.sizes && product.sizes.length > 0 && !selectedSize) {
       toast({
-        title: "Please select a size",
+        title: t('validation.required'),
         variant: "destructive",
       });
       return;
@@ -88,8 +90,8 @@ export default function ProductDetail() {
 
     addToCart(product, selectedSize, quantity);
     toast({
-      title: "Added to cart",
-      description: `${product.name} has been added to your cart`,
+      title: t('cart.itemAdded'),
+      description: `${product.name} ${t('cart.itemAdded').toLowerCase()}`,
     });
     toggleCart();
   };
@@ -152,12 +154,12 @@ export default function ProductDetail() {
               <div className="flex gap-2">
                 {product.isPreOrder && (
                   <Badge variant="secondary" data-testid="badge-preorder">
-                    Pre-Order Available
+                    {t('products.preOrder')}
                   </Badge>
                 )}
                 {!product.inStock && (
                   <Badge variant="secondary" data-testid="badge-out-of-stock">
-                    Out of Stock
+                    {t('products.outOfStock')}
                   </Badge>
                 )}
               </div>
@@ -166,14 +168,14 @@ export default function ProductDetail() {
             <Separator />
 
             <div>
-              <p className="text-sm text-muted-foreground mb-2">Material</p>
+              <p className="text-sm text-muted-foreground mb-2">{t('productDetail.material')}</p>
               <p className="font-medium">{product.material}</p>
             </div>
 
             {/* Size Selection */}
             {product.sizes && product.sizes.length > 0 && (
               <div>
-                <Label className="text-base mb-3 block">Select Size</Label>
+                <Label className="text-base mb-3 block">{t('cart.size')}</Label>
                 <RadioGroup value={selectedSize} onValueChange={setSelectedSize}>
                   <div className="grid grid-cols-4 gap-2">
                     {product.sizes.map((size) => (
@@ -199,7 +201,7 @@ export default function ProductDetail() {
 
             {/* Quantity */}
             <div>
-              <Label className="text-base mb-3 block">Quantity</Label>
+              <Label className="text-base mb-3 block">{t('productDetail.quantity')}</Label>
               <div className="flex items-center gap-3">
                 <Button
                   variant="outline"
@@ -234,20 +236,20 @@ export default function ProductDetail() {
               data-testid="button-add-to-cart"
             >
               <ShoppingBag className="mr-2 h-5 w-5" />
-              {product.isPreOrder ? "Pre-Order Now" : "Add to Cart"}
+              {product.isPreOrder ? t('products.preOrder') : t('productDetail.addToCart')}
             </Button>
 
             {/* Product Details Tabs */}
             <Tabs defaultValue="description" className="mt-8">
               <TabsList className="w-full grid grid-cols-3">
                 <TabsTrigger value="description" data-testid="tab-description">
-                  Description
+                  {t('productDetail.description')}
                 </TabsTrigger>
                 <TabsTrigger value="materials" data-testid="tab-materials">
-                  Materials
+                  {t('productDetail.material')}
                 </TabsTrigger>
                 <TabsTrigger value="shipping" data-testid="tab-shipping">
-                  Shipping
+                  {t('checkout.shippingInfo')}
                 </TabsTrigger>
               </TabsList>
               <TabsContent value="description" className="mt-4 text-sm leading-relaxed">

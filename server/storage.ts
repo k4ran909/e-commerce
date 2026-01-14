@@ -31,8 +31,10 @@ export interface IStorage {
   getOrders(): Promise<(Order & { items: OrderItem[] })[]>;
   getOrder(id: string): Promise<(Order & { items: OrderItem[] }) | undefined>;
   getUserOrders(userId: string): Promise<(Order & { items: OrderItem[] })[]>;
-  createOrder(order: InsertOrder, userId: string, items: Omit<InsertOrderItem, 'orderId'>[]): Promise<Order & { items: OrderItem[] }>;
+  createOrder(order: InsertOrder, userId: string, items: Omit<InsertOrderItem, 'orderId'>[], idempotencyKey?: string): Promise<Order & { items: OrderItem[] }>;
+  getOrderByIdempotencyKey(idempotencyKey: string): Promise<(Order & { items: OrderItem[] }) | undefined>;
   updateOrderStatus(id: string, status: string): Promise<Order | undefined>;
+  decrementStock(productId: string, quantity: number): Promise<boolean>;
 
   createUser(user: InsertUser): Promise<User>;
   findUserByEmail(email: string): Promise<User | undefined>;
@@ -468,6 +470,7 @@ export class MemStorage implements IStorage {
         material: product.material,
         isPreOrder: product.isPreOrder ?? false,
         inStock: product.inStock ?? true,
+        stockQuantity: 100,
         sizes: (product as any).sizes ?? null,
         createdAt: new Date(),
       };
@@ -509,6 +512,7 @@ export class MemStorage implements IStorage {
       material: insertProduct.material,
       isPreOrder: insertProduct.isPreOrder ?? false,
       inStock: insertProduct.inStock ?? true,
+      stockQuantity: (insertProduct as any).stockQuantity ?? 100,
       sizes: (insertProduct as any).sizes ?? null,
       createdAt: new Date(),
     };
@@ -556,7 +560,7 @@ export class MemStorage implements IStorage {
       }));
   }
 
-  async createOrder(insertOrder: InsertOrder, userId: string, items: Omit<InsertOrderItem, 'orderId'>[]): Promise<Order & { items: OrderItem[] }> {
+  async createOrder(insertOrder: InsertOrder, userId: string, items: Omit<InsertOrderItem, 'orderId'>[], idempotencyKey?: string): Promise<Order & { items: OrderItem[] }> {
     const id = randomUUID();
     const order: Order = {
       id,
@@ -572,8 +576,9 @@ export class MemStorage implements IStorage {
       status: (insertOrder as any).status ?? "pending",
       isPreOrder: (insertOrder as any).isPreOrder ?? false,
       paymentStatus: (insertOrder as any).paymentStatus ?? "pending",
+      idempotencyKey: idempotencyKey ?? null,
       createdAt: new Date(),
-    };
+    } as Order;
     this.orders.set(id, order);
 
     const orderItemsList: OrderItem[] = items.map((item) => ({
@@ -588,6 +593,16 @@ export class MemStorage implements IStorage {
     this.orderItems.set(id, orderItemsList);
 
     return { ...order, items: orderItemsList };
+  }
+
+  async getOrderByIdempotencyKey(idempotencyKey: string): Promise<(Order & { items: OrderItem[] }) | undefined> {
+    const order = Array.from(this.orders.values()).find((o) => (o as any).idempotencyKey === idempotencyKey);
+    if (!order) return undefined;
+    return { ...order, items: this.orderItems.get(order.id) || [] };
+  }
+
+  async decrementStock(_productId: string, _quantity: number): Promise<boolean> {
+    return true;
   }
 
   async updateOrderStatus(
@@ -829,41 +844,108 @@ class PostgresStorage implements IStorage {
     return result;
   }
 
-  async createOrder(insertOrder: InsertOrder, userId: string, items: Omit<InsertOrderItem, 'orderId'>[]): Promise<Order & { items: OrderItem[] }> {
-    const values = {
-      userId,
-      customerName: insertOrder.customerName,
-      customerEmail: insertOrder.customerEmail,
-      customerPhone: insertOrder.customerPhone,
-      shippingAddress: insertOrder.shippingAddress,
-      shippingCity: insertOrder.shippingCity,
-      shippingPostalCode: insertOrder.shippingPostalCode,
-      shippingCountry: insertOrder.shippingCountry,
-      totalAmount: insertOrder.totalAmount,
-      status: (insertOrder as any).status ?? "pending",
-      isPreOrder: (insertOrder as any).isPreOrder ?? false,
-      paymentStatus: (insertOrder as any).paymentStatus ?? "pending",
-    } as any;
+  async createOrder(insertOrder: InsertOrder, userId: string, items: Omit<InsertOrderItem, 'orderId'>[], idempotencyKey?: string): Promise<Order & { items: OrderItem[] }> {
+    if (idempotencyKey) {
+      const existing = await this.getOrderByIdempotencyKey(idempotencyKey);
+      if (existing) return existing;
+    }
 
-    const inserted = await this.db.insert(orders).values(values).returning().execute();
-    const order = inserted[0] as Order;
+    return await this.db.transaction(async (tx: any) => {
+      const isPreOrder = (insertOrder as any).isPreOrder ?? false;
+      if (!isPreOrder) {
+        for (const item of items) {
+          const product = await tx
+            .select()
+            .from(products)
+            .where(eq(products.id, item.productId))
+            .limit(1)
+            .execute();
+          
+          if (!product || product.length === 0) {
+            throw new Error(`Product ${item.productId} not found`);
+          }
 
-    const itemsToInsert = items.map((item) => ({
-      orderId: order.id,
-      productId: item.productId,
-      productName: item.productName,
-      productPrice: item.productPrice,
-      quantity: item.quantity,
-      size: item.size ?? null,
-    }));
+          const currentStock = product[0].stockQuantity || 0;
+          const itemQty = item.quantity || 1;
+          if (currentStock < itemQty) {
+            throw new Error(`Insufficient stock for ${item.productName}. Available: ${currentStock}, Requested: ${itemQty}`);
+          }
 
-    const insertedItems = await this.db
-      .insert(orderItems)
-      .values(itemsToInsert)
+          await tx
+            .update(products)
+            .set({ stockQuantity: sql`${products.stockQuantity} - ${itemQty}` })
+            .where(eq(products.id, item.productId))
+            .execute();
+        }
+      }
+
+      const values = {
+        userId,
+        customerName: insertOrder.customerName,
+        customerEmail: insertOrder.customerEmail,
+        customerPhone: insertOrder.customerPhone,
+        shippingAddress: insertOrder.shippingAddress,
+        shippingCity: insertOrder.shippingCity,
+        shippingPostalCode: insertOrder.shippingPostalCode,
+        shippingCountry: insertOrder.shippingCountry,
+        totalAmount: insertOrder.totalAmount,
+        status: (insertOrder as any).status ?? "pending",
+        isPreOrder,
+        paymentStatus: (insertOrder as any).paymentStatus ?? "pending",
+        idempotencyKey: idempotencyKey ?? null,
+      } as any;
+
+      const inserted = await tx.insert(orders).values(values).returning().execute();
+      const order = inserted[0] as Order;
+
+      const itemsToInsert = items.map((item) => ({
+        orderId: order.id,
+        productId: item.productId,
+        productName: item.productName,
+        productPrice: item.productPrice,
+        quantity: item.quantity,
+        size: item.size ?? null,
+      }));
+
+      const insertedItems = await tx
+        .insert(orderItems)
+        .values(itemsToInsert)
+        .returning()
+        .execute();
+
+      return { ...order, items: insertedItems as OrderItem[] };
+    });
+  }
+
+  async getOrderByIdempotencyKey(idempotencyKey: string): Promise<(Order & { items: OrderItem[] }) | undefined> {
+    const rows = await this.db
+      .select()
+      .from(orders)
+      .where(eq(orders.idempotencyKey, idempotencyKey))
+      .limit(1)
+      .execute();
+    
+    if (!rows || rows.length === 0) return undefined;
+    
+    const order = rows[0];
+    const items = await this.db
+      .select()
+      .from(orderItems)
+      .where(eq(orderItems.orderId, order.id))
+      .execute();
+    
+    return { ...order, items: items as OrderItem[] };
+  }
+
+  async decrementStock(productId: string, quantity: number): Promise<boolean> {
+    const result = await this.db
+      .update(products)
+      .set({ stockQuantity: sql`${products.stockQuantity} - ${quantity}` })
+      .where(eq(products.id, productId))
       .returning()
       .execute();
-
-    return { ...order, items: insertedItems as OrderItem[] };
+    
+    return result && result.length > 0;
   }
 
   async updateOrderStatus(id: string, status: string): Promise<Order | undefined> {
@@ -886,8 +968,15 @@ class PostgresStorage implements IStorage {
       passwordHash,
       role: user.role ?? "user",
     } as any;
-    const inserted = await this.db.insert(users).values(values).returning().execute();
-    return inserted[0] as User;
+    try {
+      const inserted = await this.db.insert(users).values(values).returning().execute();
+      return inserted[0] as User;
+    } catch (error: any) {
+      if (error.code === '23505' || error.constraint === 'users_email_unique') {
+        throw new Error('EMAIL_ALREADY_EXISTS');
+      }
+      throw error;
+    }
   }
 
   async findUserByEmail(email: string): Promise<User | undefined> {
@@ -936,27 +1025,31 @@ class PostgresStorage implements IStorage {
   }
 
   async addOrIncrementCartItem(userId: string, productId: string, size?: string, quantity: number = 1): Promise<CartItem> {
-    const existing = await this.db
-      .select()
-      .from(cartItems)
-      .where(eq(cartItems.userId, userId))
-      .execute();
-    const match = existing.find((i: CartItem) => i.productId === productId && (i.size ?? null) === (size ?? null));
-    if (match) {
-      const updated = await this.db
-        .update(cartItems)
-        .set({ quantity: match.quantity + (quantity ?? 1) })
-        .where(eq(cartItems.id, match.id))
+    return await this.db.transaction(async (tx: any) => {
+      const existing = await tx
+        .select()
+        .from(cartItems)
+        .where(eq(cartItems.userId, userId))
+        .execute();
+      const match = existing.find((i: CartItem) => i.productId === productId && (i.size ?? null) === (size ?? null));
+      
+      if (match) {
+        const updated = await tx
+          .update(cartItems)
+          .set({ quantity: sql`${cartItems.quantity} + ${quantity ?? 1}` })
+          .where(eq(cartItems.id, match.id))
+          .returning()
+          .execute();
+        return updated[0] as CartItem;
+      }
+      
+      const inserted = await tx
+        .insert(cartItems)
+        .values({ userId, productId, size: size ?? null, quantity: quantity ?? 1 })
         .returning()
         .execute();
-      return updated[0] as CartItem;
-    }
-    const inserted = await this.db
-      .insert(cartItems)
-      .values({ userId, productId, size: size ?? null, quantity: quantity ?? 1 })
-      .returning()
-      .execute();
-    return inserted[0] as CartItem;
+      return inserted[0] as CartItem;
+    });
   }
 
   async updateCartItemQuantity(userId: string, cartItemId: string, quantity: number): Promise<CartItem | undefined> {
@@ -992,24 +1085,55 @@ class PostgresStorage implements IStorage {
   }
 }
 
-let storageInstance: IStorage;
+let storageInstance: IStorage | null = null;
 
-if (process.env.DATABASE_URL) {
-  try {
-    const db = initDb(process.env.DATABASE_URL);
-    if (typeof (db as any).execute === "function") {
-      await (db as any).execute(sql`select 1`);
+async function initializeStorage(): Promise<IStorage> {
+  if (process.env.DATABASE_URL) {
+    try {
+      console.log("[storage] Attempting to connect to PostgreSQL database...");
+      const db = initDb(process.env.DATABASE_URL);
+      
+      // Test connection with timeout
+      const testQuery = async () => {
+        if (typeof (db as any).execute === "function") {
+          await (db as any).execute(sql`SELECT 1 as test`);
+        }
+      };
+      
+      await Promise.race([
+        testQuery(),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error("Database connection test timed out after 8s")), 8000)
+        )
+      ]);
+      
+      storageInstance = new PostgresStorage(db);
+      console.log("[storage] ✓ Successfully connected to PostgresStorage");
+      return storageInstance;
+    } catch (e: any) {
+      console.error("[storage] ✗ Database connection failed:", e.message);
+      console.warn("[storage] Falling back to MemStorage (in-memory, data will not persist)");
     }
-    storageInstance = new PostgresStorage(db);
-    console.log("[storage] Using PostgresStorage (DATABASE_URL detected)");
-  } catch (e) {
-    console.error("[storage] DB unreachable, falling back to MemStorage:", e);
-    storageInstance = new MemStorage();
-    console.warn("[storage] Using in-memory storage; data will not persist to DB.");
+  } else {
+    console.warn("[storage] DATABASE_URL not set. Using in-memory storage.");
   }
-} else {
+  
   storageInstance = new MemStorage();
-  console.warn("[storage] DATABASE_URL not set. Using in-memory storage; data will not persist to DB.");
+  return storageInstance;
 }
 
-export const storage = storageInstance;
+const storagePromise = initializeStorage();
+
+export async function getStorage(): Promise<IStorage> {
+  if (storageInstance) return storageInstance;
+  return storagePromise;
+}
+
+export const storage: IStorage = new Proxy({} as IStorage, {
+  get(_target, prop) {
+    if (!storageInstance) {
+      throw new Error("Storage not initialized yet. Use getStorage() or await initialization.");
+    }
+    return (storageInstance as any)[prop];
+  }
+});

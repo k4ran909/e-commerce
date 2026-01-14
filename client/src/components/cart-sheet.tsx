@@ -5,12 +5,14 @@ import { useCart } from "@/lib/cart-context";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/lib/auth-context";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslation } from "react-i18next";
 
 export function CartSheet() {
   const { items, totalPrice, isCartOpen, setIsCartOpen, updateQuantity, removeFromCart } = useCart();
   const { me } = useAuth();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
+  const { t } = useTranslation();
 
   const formattedTotal = new Intl.NumberFormat("id-ID", {
     style: "currency",
@@ -22,29 +24,29 @@ export function CartSheet() {
     <Sheet open={isCartOpen} onOpenChange={setIsCartOpen}>
       <SheetContent hideClose className="flex w-full flex-col sm:max-w-lg" aria-describedby={undefined}>
         <div className="flex items-center justify-between mb-2">
-          <SheetTitle className="font-serif text-2xl">Shopping Cart</SheetTitle>
+          <SheetTitle className="font-serif text-2xl">{t('cart.title')}</SheetTitle>
           <SheetClose asChild>
             <Button variant="ghost" size="icon" className="rounded-full h-10 w-10">
               <X className="h-6 w-6" />
-              <span className="sr-only">Close</span>
+              <span className="sr-only">{t('common.close')}</span>
             </Button>
           </SheetClose>
         </div>
         <SheetDescription asChild>
           <p id="cart-description" className="sr-only">
           {items.length === 0 
-            ? "Your shopping cart is empty" 
-            : `Your shopping cart contains ${items.length} ${items.length === 1 ? 'item' : 'items'}`}
+            ? t('cart.empty') 
+            : `${t('cart.title')} ${items.length} ${items.length === 1 ? t('cart.item') : t('cart.items')}`}
           </p>
         </SheetDescription>
 
         {items.length === 0 ? (
           <div className="flex flex-1 flex-col items-center justify-center gap-4">
             <ShoppingBag className="h-16 w-16 text-muted-foreground" />
-            <p className="text-muted-foreground">Your cart is empty</p>
+            <p className="text-muted-foreground">{t('cart.empty')}</p>
             <Link href="/products">
               <Button onClick={() => setIsCartOpen(false)} data-testid="button-browse-products">
-                Browse Products
+                {t('cart.continueShopping')}
               </Button>
             </Link>
           </div>
@@ -84,7 +86,7 @@ export function CartSheet() {
                             </h4>
                             {item.size && (
                               <p className="text-sm text-muted-foreground">
-                                Size: {item.size}
+                                {t('cart.size')}: {item.size}
                               </p>
                             )}
                             <p className="text-sm font-medium mt-1">{formattedPrice}</p>
@@ -138,21 +140,21 @@ export function CartSheet() {
 
             <div className="space-y-4 border-t pt-4">
               <div className="flex justify-between text-base font-medium">
-                <span>Subtotal</span>
+                <span>{t('cart.subtotal')}</span>
                 <span data-testid="text-cart-total" className="font-serif text-lg">
                   {formattedTotal}
                 </span>
               </div>
               <p className="text-sm text-muted-foreground">
-                Shipping and taxes calculated at checkout
+                {t('cart.shippingNote')}
               </p>
               <Button
                 className="w-full"
                 onClick={() => {
                   if (!me) {
                     toast({
-                      title: "Login required",
-                      description: "Please log in to proceed to checkout.",
+                      title: t('cart.loginRequired'),
+                      description: t('cart.loginToCheckout'),
                       variant: "destructive",
                     });
                     setIsCartOpen(false);
@@ -164,7 +166,7 @@ export function CartSheet() {
                 }}
                 data-testid="button-checkout"
               >
-                Proceed to Checkout
+                {t('cart.checkout')}
               </Button>
             </div>
           </>

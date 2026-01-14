@@ -2,12 +2,14 @@ import { Link } from "wouter";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { Product } from "@shared/schema";
+import { useTranslation } from "react-i18next";
 
 interface ProductCardProps {
   product: Product;
 }
 
 export function ProductCard({ product }: ProductCardProps) {
+  const { t } = useTranslation();
   const formattedPrice = new Intl.NumberFormat("id-ID", {
     style: "currency",
     currency: "IDR",
@@ -37,7 +39,7 @@ export function ProductCard({ product }: ProductCardProps) {
               data-testid={`badge-preorder-${product.id}`}
               className="absolute top-3 right-3 font-medium"
             >
-              Pre-Order
+              {t('products.preOrder')}
             </Badge>
           )}
           {!product.inStock && !product.isPreOrder && (
@@ -46,7 +48,7 @@ export function ProductCard({ product }: ProductCardProps) {
               data-testid={`badge-outofstock-${product.id}`}
               className="absolute top-3 right-3 font-medium"
             >
-              Out of Stock
+              {t('products.outOfStock')}
             </Badge>
           )}
         </div>

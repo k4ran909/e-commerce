@@ -7,6 +7,7 @@ import { createHash } from "crypto";
 import path from "path";
 import { signToken, verifyToken, hashPassword } from "./jwt";
 import PDFDocument from "pdfkit";
+import { authLimiter, loginLimiter, checkoutLimiter } from "./middleware";
 
 const deleteAttempts: Map<string, { count: number; lockedUntil?: number }> = new Map();
 const MAX_DELETE_ATTEMPTS = 5;
@@ -36,7 +37,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   };
 
   const setSessionCookie = (res: any, token: string) => {
-    const cookie = `token=${encodeURIComponent(token)}; HttpOnly; Path=/; SameSite=Lax`;
+    const maxAge = 12 * 60 * 60;
+    const cookie = `token=${encodeURIComponent(token)}; HttpOnly; Path=/; SameSite=Lax; Max-Age=${maxAge}`;
     res.setHeader("Set-Cookie", cookie);
   };
 
@@ -61,7 +63,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(safe);
   });
 
-  app.post("/api/auth/register", async (req, res) => {
+  app.post("/api/auth/register", authLimiter, async (req, res) => {
     try {
       const body = req.body;
       const parsed = z
@@ -73,19 +75,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         })
         .parse(body as any);
 
-      const existing = await storage.findUserByEmail(parsed.email);
-      if (existing) {
-        return res.status(400).json({ message: "Email already registered" });
-      }
       const user = await storage.createUser(parsed as any);
       res.status(201).json({ message: "Account created successfully", email: user.email });
     } catch (error: any) {
+      if (error.message === 'EMAIL_ALREADY_EXISTS') {
+        return res.status(400).json({ message: "Email already registered" });
+      }
       const friendly = error?.errors?.[0]?.message || error?.message || "Invalid user data";
       res.status(400).json({ message: friendly });
     }
   });
 
-  app.post("/api/auth/login", async (req, res) => {
+  app.post("/api/auth/login", loginLimiter, async (req, res) => {
     const { email, password } = req.body as { email?: string; password?: string };
     if (!email || !password) return res.status(400).json({ message: "Email and password required" });
     const user = await storage.findUserByEmail(email);
@@ -189,12 +190,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  const searchTermMappings: Record<string, string[]> = {
+    // Categories - English
+    "rings": ["ring", "rings"],
+    "necklaces": ["necklace", "necklaces", "neck"],
+    "bracelets": ["bracelet", "bracelets", "brace"],
+    "earrings": ["earring", "earrings", "ear"],
+    // Categories - Indonesian
+    "cincin": ["ring", "rings"],
+    "kalung": ["necklace", "necklaces"],
+    "gelang": ["bracelet", "bracelets"],
+    "anting": ["earring", "earrings"],
+    // Categories - Spanish
+    "anillos": ["ring", "rings"],
+    "anillo": ["ring", "rings"],
+    "collares": ["necklace", "necklaces"],
+    "collar": ["necklace", "necklaces"],
+    "pulseras": ["bracelet", "bracelets"],
+    "pulsera": ["bracelet", "bracelets"],
+    "aretes": ["earring", "earrings"],
+    "arete": ["earring", "earrings"],
+    // Categories - French
+    "bagues": ["ring", "rings"],
+    "bague": ["ring", "rings"],
+    "colliers": ["necklace", "necklaces"],
+    "collier": ["necklace", "necklaces"],
+    "boucles": ["earring", "earrings"],
+    // Materials - Indonesian
+    "emas": ["gold"],
+    "perak": ["silver"],
+    "platinum": ["platinum"],
+    "berlian": ["diamond"],
+    "mutiara": ["pearl"],
+    // Materials - Spanish
+    "oro": ["gold"],
+    "plata": ["silver"],
+    "platino": ["platinum"],
+    "diamante": ["diamond"],
+    "perla": ["pearl"],
+    // Materials - French
+    "or": ["gold"],
+    "argent": ["silver"],
+    "platine": ["platinum"],
+    "diamant": ["diamond"],
+    "perle": ["pearl"],
+  };
+
   app.get("/api/search", async (req, res) => {
     try {
       const q = (req.query.q as string | undefined)?.trim() || "";
       if (!q) return res.json([]);
       const products = await storage.getProducts();
       const query = q.toLowerCase();
+      const searchTermsSet = new Set<string>([query]);
+      
+      for (const [key, values] of Object.entries(searchTermMappings)) {
+        if (query === key || query.includes(key) || key.includes(query)) {
+          values.forEach(v => searchTermsSet.add(v));
+        }
+      }
+      
+      const searchTerms = Array.from(searchTermsSet);
 
       const scored = products
         .map((p) => {
@@ -204,20 +260,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const hayCat = p.category.toLowerCase();
 
           let score = 0;
-          if (query.startsWith("ring")) score += hayCat === "rings" ? 5 : 0;
-          if (query.startsWith("neck")) score += hayCat === "necklaces" ? 5 : 0;
-          if (query.startsWith("brace")) score += hayCat === "bracelets" ? 5 : 0;
-          if (query.startsWith("ear")) score += hayCat === "earrings" ? 5 : 0;
 
-          if (hayName.startsWith(query)) score += 6;
-          if (hayName.includes(query)) score += 4;
+          for (const term of searchTerms) {
+            if (term.startsWith("ring") || term === "ring" || term === "rings") {
+              score += hayCat === "rings" ? 5 : 0;
+            }
+            if (term.startsWith("neck") || term === "necklace" || term === "necklaces") {
+              score += hayCat === "necklaces" ? 5 : 0;
+            }
+            if (term.startsWith("brace") || term === "bracelet" || term === "bracelets") {
+              score += hayCat === "bracelets" ? 5 : 0;
+            }
+            if (term.startsWith("ear") || term === "earring" || term === "earrings") {
+              score += hayCat === "earrings" ? 5 : 0;
+            }
 
-          if (hayMat.includes(query)) score += 2;
-          if (hayDesc.includes(query)) score += 1;
+            if (hayName.startsWith(term)) score += 6;
+            if (hayName.includes(term)) score += 4;
+            if (hayMat.includes(term)) score += 2;
+            if (hayDesc.includes(term)) score += 1;
 
-          if (["rings","ring","necklace","necklaces","bracelet","bracelets","earring","earrings"].includes(query)) {
-            const norm = query.endsWith("s") ? query : `${query}s`;
-            if (hayCat === norm) score += 8;
+            if (["rings","ring","necklace","necklaces","bracelet","bracelets","earring","earrings"].includes(term)) {
+              const norm = term.endsWith("s") ? term : `${term}s`;
+              if (hayCat === norm) score += 8;
+            }
           }
 
           return { p, score };
@@ -331,12 +397,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/orders", async (req, res) => {
+  app.post("/api/orders", checkoutLimiter, async (req, res) => {
     try {
       const user = await getUserFromRequest(req);
       if (!user) return res.status(401).json({ message: "Unauthorized" });
       
-      const { items, ...orderData } = req.body;
+      const { items, idempotencyKey, ...orderData } = req.body;
       
       if (!items || !Array.isArray(items) || items.length === 0) {
         return res.status(400).json({ message: "Order must contain at least one item" });
@@ -352,9 +418,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         size: item.size || null,
       }));
       
-      const order = await storage.createOrder(validated, user.id, orderItemsData);
+      const order = await storage.createOrder(validated, user.id, orderItemsData, idempotencyKey);
       res.status(201).json(order);
     } catch (error: any) {
+      if (error.message?.includes('Insufficient stock')) {
+        return res.status(409).json({ message: error.message });
+      }
       res.status(400).json({ message: "Invalid order data", error: error.message });
     }
   });
@@ -601,35 +670,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       itemY += 25;
       
-      // Light separator line
       doc.moveTo(50, itemY - 5).lineTo(550, itemY - 5).strokeOpacity(0.2).stroke().strokeOpacity(1);
     });
 
-    // Move to totals section
     doc.y = itemY + 10;
     const totalsX = 400;
     const totalsY = doc.y;
 
-    // Subtotal
     doc.fontSize(10).font('Helvetica').text('Subtotal:', totalsX, totalsY, { width: 80, align: 'left' });
     doc.text(`$${(subtotal / 100).toFixed(2)}`, totalsX + 80, totalsY, { width: 70, align: 'right' });
 
-    // Tax
     doc.text('Tax (10%):', totalsX, totalsY + 20, { width: 80, align: 'left' });
     doc.text(`$${(tax / 100).toFixed(2)}`, totalsX + 80, totalsY + 20, { width: 70, align: 'right' });
 
-    // Line before total
     doc.moveTo(totalsX, totalsY + 40).lineTo(550, totalsY + 40).stroke();
 
-    // Total
     doc.fontSize(14).font('Helvetica-Bold');
     doc.text('Total:', totalsX, totalsY + 50, { width: 80, align: 'left' });
     doc.text(`$${(total / 100).toFixed(2)}`, totalsX + 80, totalsY + 50, { width: 70, align: 'right' });
 
-    // Footer
     doc.fontSize(10).font('Helvetica').fillColor('#666666');
     
-    // Move to bottom of page
     const footerY = 720;
     doc.moveTo(50, footerY).lineTo(550, footerY).stroke();
     doc.moveDown(0.5);

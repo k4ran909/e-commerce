@@ -2,8 +2,10 @@ import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ArrowRight } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 export default function Home() {
+  const { t } = useTranslation();
   const heroImage = "/Elegant_hero_lifestyle_jewelry_photo_1ea3bf8d.png";
   const ringsImage = "/Rose_gold_diamond_ring_406b3b84.png";
   const necklacesImage = "/Gold_pendant_necklace_84aa4494.png";
@@ -11,28 +13,28 @@ export default function Home() {
   const earringsImage = "/Pearl_stud_earrings_00219806.png";
   const categories = [
     {
-      name: "Rings",
+      name: t('products.rings'),
       description: "Timeless elegance for every moment",
       href: "/products?category=rings",
       testId: "card-category-rings",
       image: ringsImage,
     },
     {
-      name: "Necklaces",
+      name: t('products.necklaces'),
       description: "Graceful pieces to elevate your style",
       href: "/products?category=necklaces",
       testId: "card-category-necklaces",
       image: necklacesImage,
     },
     {
-      name: "Bracelets",
+      name: t('products.bracelets'),
       description: "Delicate charm for your wrist",
       href: "/products?category=bracelets",
       testId: "card-category-bracelets",
       image: braceletsImage,
     },
     {
-      name: "Earrings",
+      name: t('products.earrings'),
       description: "Stunning accents for every occasion",
       href: "/products?category=earrings",
       testId: "card-category-earrings",
@@ -62,10 +64,10 @@ export default function Home() {
               className="font-serif text-4xl md:text-5xl lg:text-6xl font-light text-white"
               data-testid="text-hero-title"
             >
-              Timeless Elegance, Crafted for You
+              {t('home.hero.title')}
             </h1>
             <p className="text-lg md:text-xl text-white/90 font-light max-w-2xl mx-auto">
-              Discover our curated collection of handcrafted fine jewelry
+              {t('home.hero.subtitle')}
             </p>
             <Link href="/products">
               <Button
@@ -73,7 +75,7 @@ export default function Home() {
                 data-testid="button-shop-now"
                 className="mt-4 bg-white/10 backdrop-blur-md border border-white/20 text-white hover:bg-white/20"
               >
-                Shop Collection
+                {t('home.hero.cta')}
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </Link>
@@ -86,10 +88,10 @@ export default function Home() {
         <div className="container mx-auto px-4 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="font-serif text-3xl lg:text-4xl font-light mb-4">
-              Shop by Category
+              {t('products.categories')}
             </h2>
             <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-              Explore our carefully curated collections of fine jewelry
+              {t('home.featured.title')}
             </p>
           </div>
 
@@ -143,7 +145,7 @@ export default function Home() {
             </p>
             <Link href="/products">
               <Button variant="outline" size="lg" data-testid="button-view-all">
-                View All Products
+                {t('home.featured.viewAll')}
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </Link>

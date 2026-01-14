@@ -21,7 +21,29 @@ export function initDb(connectionString?: string) {
     } catch {
     }
 
-    pool = new Pool({ connectionString: conn, ssl });
+    pool = new Pool({ 
+      connectionString: conn, 
+      ssl,
+      max: 10,
+      min: 2,
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 10000,
+      acquireTimeoutMillis: 10000,
+      allowExitOnIdle: false,
+      keepAlive: true,
+      keepAliveInitialDelayMillis: 10000,
+    });
+    
+    pool.on('error', (err) => {
+      console.error('[DB Pool] Unexpected error on idle client:', err);
+    });
+    
+    pool.on('connect', () => {
+    });
+    
+    pool.on('remove', () => {
+    });
+    
     db = drizzle(pool);
   }
   return db;
@@ -30,4 +52,17 @@ export function initDb(connectionString?: string) {
 export function getDb() {
   if (!db) throw new Error("DB not initialized. Call initDb() first.");
   return db;
+}
+
+export function getPool() {
+  return pool;
+}
+
+export async function getPoolStats() {
+  if (!pool) return null;
+  return {
+    totalCount: pool.totalCount,
+    idleCount: pool.idleCount,
+    waitingCount: pool.waitingCount,
+  };
 }

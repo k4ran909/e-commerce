@@ -9,8 +9,10 @@ import type { Product } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis, CartesianGrid } from "recharts";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useTranslation } from "react-i18next";
 
 export default function AdminDashboard() {
+  const { t } = useTranslation();
   const { me, loading, logout } = useAuth();
   const { data } = useQuery<{ products: number; orders: number; revenue: number }>({
     queryKey: ["/api/admin/summary"],
@@ -41,21 +43,21 @@ export default function AdminDashboard() {
       const res = await fetch(`/api/products/${id}`, { method: "DELETE" });
       if (!res.ok) {
         const j = await res.json().catch(() => ({}));
-        throw new Error(j.message || "Failed to delete product");
+        throw new Error(j.message || t('admin.deleteFailed'));
       }
       return true;
     },
     onSuccess: () => {
-      toast({ title: "Product deleted" });
+      toast({ title: t('admin.productDeleted') });
       queryClient.invalidateQueries({ queryKey: ["/api/products"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/summary"] });
     },
-    onError: (e: any) => toast({ title: "Delete failed", description: e.message, variant: "destructive" })
+    onError: (e: any) => toast({ title: t('admin.deleteFailed'), description: e.message, variant: "destructive" })
   });
 
   useEffect(() => {
-    document.title = "Admin Dashboard";
-  }, []);
+    document.title = t('admin.title');
+  }, [t]);
 
   if (loading) {
     return (
@@ -71,26 +73,26 @@ export default function AdminDashboard() {
       </div>
     );
   }
-  if (!me) return <div className="container mx-auto p-6">Unauthorized</div>;
-  if (me.role !== "admin") return <div className="container mx-auto p-6">Admins only.</div>;
+  if (!me) return <div className="container mx-auto p-6">{t('admin.unauthorized')}</div>;
+  if (me.role !== "admin") return <div className="container mx-auto p-6">{t('admin.adminsOnly')}</div>;
 
   const formatIDR = new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 });
 
   return (
     <div className="container mx-auto px-4 lg:px-8 py-8 space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="font-serif text-3xl lg:text-4xl font-light">Admin Dashboard</h1>
+        <h1 className="font-serif text-3xl lg:text-4xl font-light">{t('admin.title')}</h1>
         {/* Desktop / tablet action buttons */}
         <div className="hidden md:flex gap-2">
-          <Link href="/products"><Button variant="outline">View Store</Button></Link>
+          <Link href="/products"><Button variant="outline">{t('admin.viewStore')}</Button></Link>
           <Confirm
-            title="Confirm Logout"
-            description="Are you sure you want to sign out of your account?"
-            confirmLabel="Logout"
+            title={t('admin.confirmLogout')}
+            description={t('admin.logoutDescription')}
+            confirmLabel={t('admin.logout')}
             onConfirm={logout}
           >
             <Button variant="outline">
-              <LogOut className="w-4 h-4 mr-2" /> Logout
+              <LogOut className="w-4 h-4 mr-2" /> {t('admin.logout')}
             </Button>
           </Confirm>
         </div>
@@ -98,30 +100,30 @@ export default function AdminDashboard() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="border rounded-xl p-4 bg-card">
-          <div className="text-sm text-muted-foreground">Products</div>
+          <div className="text-sm text-muted-foreground">{t('products.products')}</div>
           <div className="text-2xl font-semibold">{data?.products ?? "—"}</div>
         </div>
         <div className="border rounded-xl p-4 bg-card">
-          <div className="text-sm text-muted-foreground">Orders</div>
+          <div className="text-sm text-muted-foreground">{t('admin.orders')}</div>
           <div className="text-2xl font-semibold">{data?.orders ?? "—"}</div>
         </div>
         <div className="border rounded-xl p-4 bg-card">
-          <div className="text-sm text-muted-foreground">Revenue</div>
+          <div className="text-sm text-muted-foreground">{t('admin.revenue')}</div>
           <div className="text-2xl font-semibold">{data ? formatIDR.format(data.revenue / 100) : "—"}</div>
         </div>
       </div>
 
       {/* Mobile action buttons moved below revenue */}
       <div className="flex md:hidden gap-2 pt-2">
-        <Link href="/products"><Button variant="outline" className="flex-1">View Store</Button></Link>
+        <Link href="/products"><Button variant="outline" className="flex-1">{t('admin.viewStore')}</Button></Link>
         <Confirm
-          title="Confirm Logout"
-          description="Are you sure you want to sign out of your account?"
-          confirmLabel="Logout"
+          title={t('admin.confirmLogout')}
+          description={t('admin.logoutDescription')}
+          confirmLabel={t('admin.logout')}
           onConfirm={logout}
         >
           <Button variant="outline" className="flex-1">
-            <LogOut className="w-4 h-4 mr-2" /> Logout
+            <LogOut className="w-4 h-4 mr-2" /> {t('admin.logout')}
           </Button>
         </Confirm>
       </div>
@@ -130,23 +132,23 @@ export default function AdminDashboard() {
       <div className="border rounded-xl bg-card">
         <div className="p-4 border-b flex items-center justify-between">
           <div>
-            <h2 className="font-serif text-xl font-light">Manage Orders</h2>
-            <p className="text-sm text-muted-foreground">View and process customer orders</p>
+            <h2 className="font-serif text-xl font-light">{t('admin.manageOrders')}</h2>
+            <p className="text-sm text-muted-foreground">{t('admin.manageOrdersDescription')}</p>
           </div>
           <Link href="/admin/orders">
             <Button className="whitespace-nowrap">
-              <span className="md:hidden">View Orders</span>
-              <span className="hidden md:inline">View All Orders</span>
+              <span className="md:hidden">{t('admin.viewOrders')}</span>
+              <span className="hidden md:inline">{t('admin.viewAllOrders')}</span>
             </Button>
           </Link>
         </div>
         <div className="p-4">
           <div className="text-center text-muted-foreground">
             <p className="text-sm">
-              {data?.orders ?? 0} total order{(data?.orders ?? 0) !== 1 ? 's' : ''}
+              {t('admin.totalOrders', { count: data?.orders ?? 0 })}
             </p>
             <Link href="/admin/orders">
-              <Button variant="ghost" className="mt-2 px-0">Go to Order Management →</Button>
+              <Button variant="ghost" className="mt-2 px-0">{t('admin.goToOrderManagement')} →</Button>
             </Link>
           </div>
         </div>
@@ -156,13 +158,13 @@ export default function AdminDashboard() {
       <div className="border rounded-xl bg-card">
         <div className="p-4 border-b flex items-center justify-between">
           <div>
-            <h2 className="font-serif text-xl font-light">Products</h2>
-            <p className="text-sm text-muted-foreground">Manage your catalog</p>
+            <h2 className="font-serif text-xl font-light">{t('admin.productsSection')}</h2>
+            <p className="text-sm text-muted-foreground">{t('admin.manageCatalog')}</p>
           </div>
           <Link href="/admin/products/new">
             <Button className="whitespace-nowrap">
-              <span className="md:hidden">Add Product</span>
-              <span className="hidden md:inline">Add New Product</span>
+              <span className="md:hidden">{t('admin.addProduct')}</span>
+              <span className="hidden md:inline">{t('admin.addNewProduct')}</span>
             </Button>
           </Link>
         </div>
@@ -171,12 +173,12 @@ export default function AdminDashboard() {
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left border-b">
-                <th className="py-3 px-4">Product ID</th>
-                <th className="py-3 px-4">Product Name</th>
-                <th className="py-3 px-4">Category</th>
-                <th className="py-3 px-4">Selling Price</th>
-                <th className="py-3 px-4">Date Created</th>
-                <th className="py-3 px-4 text-right">Actions</th>
+                <th className="py-3 px-4">{t('admin.productId')}</th>
+                <th className="py-3 px-4">{t('admin.productName')}</th>
+                <th className="py-3 px-4">{t('admin.category')}</th>
+                <th className="py-3 px-4">{t('admin.sellingPrice')}</th>
+                <th className="py-3 px-4">{t('admin.dateCreated')}</th>
+                <th className="py-3 px-4 text-right">{t('admin.actions')}</th>
               </tr>
             </thead>
             <tbody>
@@ -191,15 +193,15 @@ export default function AdminDashboard() {
                   <td className="py-3 px-4 align-middle">{p.createdAt ? new Date(p.createdAt as any).toLocaleDateString() : "—"}</td>
                   <td className="py-3 px-4 align-middle text-right">
                     <div className="flex gap-2 justify-end">
-                      <Link href={`/admin/products/${p.id}/edit`}><Button size="sm" variant="outline">Edit</Button></Link>
-                      <Link href={`/product/${p.id}?from=admin`}><Button size="sm" variant="outline">Preview</Button></Link>
+                      <Link href={`/admin/products/${p.id}/edit`}><Button size="sm" variant="outline">{t('admin.edit')}</Button></Link>
+                      <Link href={`/product/${p.id}?from=admin`}><Button size="sm" variant="outline">{t('admin.preview')}</Button></Link>
                       <Confirm
-                        title="Delete product?"
-                        description={`This will permanently remove ${p.name}.`}
-                        confirmLabel="Delete"
+                        title={t('admin.deleteProductTitle')}
+                        description={t('admin.deleteProductDescription', { name: p.name })}
+                        confirmLabel={t('admin.delete')}
                         onConfirm={() => deleteMutation.mutate(p.id)}
                       >
-                        <Button size="sm" variant="destructive">Delete</Button>
+                        <Button size="sm" variant="destructive">{t('admin.delete')}</Button>
                       </Confirm>
                     </div>
                   </td>
@@ -207,7 +209,7 @@ export default function AdminDashboard() {
               ))}
               {!productList?.length && (
                 <tr>
-                  <td className="py-6 px-4 text-center text-muted-foreground" colSpan={6}>No products</td>
+                  <td className="py-6 px-4 text-center text-muted-foreground" colSpan={6}>{t('admin.noProducts')}</td>
                 </tr>
               )}
             </tbody>
@@ -232,21 +234,21 @@ export default function AdminDashboard() {
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  <Link href={`/admin/products/${p.id}/edit`}><Button size="sm" variant="outline" className="flex-1">Edit</Button></Link>
-                  <Link href={`/product/${p.id}?from=admin`}><Button size="sm" variant="outline" className="flex-1">Preview</Button></Link>
+                  <Link href={`/admin/products/${p.id}/edit`}><Button size="sm" variant="outline" className="flex-1">{t('admin.edit')}</Button></Link>
+                  <Link href={`/product/${p.id}?from=admin`}><Button size="sm" variant="outline" className="flex-1">{t('admin.preview')}</Button></Link>
                   <Confirm
-                    title="Delete product?"
-                    description={`This will permanently remove ${p.name}.`}
-                    confirmLabel="Delete"
+                    title={t('admin.deleteProductTitle')}
+                    description={t('admin.deleteProductDescription', { name: p.name })}
+                    confirmLabel={t('admin.delete')}
                     onConfirm={() => deleteMutation.mutate(p.id)}
                   >
-                    <Button size="sm" variant="destructive" className="flex-1">Delete</Button>
+                    <Button size="sm" variant="destructive" className="flex-1">{t('admin.delete')}</Button>
                   </Confirm>
                 </div>
               </div>
             ))}
             {!productList?.length && (
-              <div className="p-6 text-center text-sm text-muted-foreground">No products</div>
+              <div className="p-6 text-center text-sm text-muted-foreground">{t('admin.noProducts')}</div>
             )}
           </div>
         </div>
@@ -255,11 +257,11 @@ export default function AdminDashboard() {
       {/* Sales Overview */}
       <div className="border rounded-xl bg-card">
         <div className="p-4 border-b">
-          <h2 className="font-serif text-xl font-light">Sales Overview</h2>
-          <p className="text-sm text-muted-foreground">Total revenue per day</p>
+          <h2 className="font-serif text-xl font-light">{t('admin.salesOverview')}</h2>
+          <p className="text-sm text-muted-foreground">{t('admin.salesDescription')}</p>
           <div className="mt-3 flex gap-2 flex-wrap">
             {(["week","month","quarter"] as const).map((p) => (
-              <Button key={p} variant={period===p?"default":"outline"} size="sm" onClick={() => setPeriod(p)} className="capitalize">{p}</Button>
+              <Button key={p} variant={period===p?"default":"outline"} size="sm" onClick={() => setPeriod(p)} className="capitalize">{t(`admin.${p}`)}</Button>
             ))}
           </div>
         </div>
@@ -285,12 +287,12 @@ export default function AdminDashboard() {
           )}
           {salesError && !salesLoading && (
             <div className="absolute inset-0 flex items-center justify-center text-xs text-red-500">
-              Failed to load sales
+              {t('admin.failedToLoadSales')}
             </div>
           )}
           {!salesLoading && !salesError && sales && sales.points.every((p) => p.total === 0) && (
             <div className="absolute inset-0 flex items-center justify-center text-xs text-muted-foreground">
-              No revenue in this period
+              {t('admin.noRevenue')}
             </div>
           )}
         </div>

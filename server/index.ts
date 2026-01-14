@@ -2,6 +2,7 @@ import 'dotenv/config';
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { getStorage } from "./storage";
 
 const app = express();
 
@@ -48,14 +49,26 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  await getStorage();
+  
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
+    
+    if (err.code === 'ETIMEDOUT' || err.code === 'ECONNREFUSED' || err.message?.includes('Connection pool')) {
+      log(`[ERROR] Database connection issue: ${err.message}`);
+      return res.status(503).json({ message: "Service temporarily unavailable. Please try again." });
+    }
 
     res.status(status).json({ message });
-    throw err;
+    
+    if (app.get("env") === "development") {
+      throw err;
+    } else {
+      console.error('[ERROR]', err);
+    }
   });
 
   if (app.get("env") === "development") {

@@ -3,6 +3,7 @@ import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { Confirm } from "@/components/ui/confirm-dialog";
 import { Link } from "wouter";
+import { useTranslation } from "react-i18next";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import DeleteAccountDialog from "@/components/modals/delete-account-dialog";
 import { useToast } from "@/hooks/use-toast";
@@ -11,10 +12,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export default function UserDashboard() {
   const { me, loading, logout } = useAuth();
+  const { t } = useTranslation();
 
   useEffect(() => {
-    document.title = "Your Dashboard";
-  }, []);
+    document.title = t('dashboard.welcome');
+  }, [t]);
 
   const { data: orders = [] } = useQuery({
     queryKey: ["/api/user/orders"],
@@ -42,8 +44,8 @@ export default function UserDashboard() {
   }
   if (!me) return (
     <div className="container mx-auto p-6">
-      <p className="mb-4">You are not logged in.</p>
-      <Link href="/products"><Button>Browse products</Button></Link>
+      <p className="mb-4">{t('auth.login.welcomeBack')}</p>
+      <Link href="/products"><Button>{t('products.title')}</Button></Link>
     </div>
   );
 
@@ -62,11 +64,11 @@ export default function UserDashboard() {
       return true;
     },
     onSuccess: async () => {
-      toast({ title: "Account deleted" });
+      toast({ title: t('common.success') });
       await logout();
     },
     onError: (e: any) => {
-      toast({ title: "Deletion failed", description: e.message, variant: "destructive" });
+      toast({ title: t('common.error'), description: e.message, variant: "destructive" });
     },
   });
 
@@ -74,20 +76,20 @@ export default function UserDashboard() {
 
   return (
     <div className="container mx-auto px-4 lg:px-8 py-8 space-y-6">
-      <h1 className="font-serif text-3xl lg:text-4xl font-light">Welcome, {me.name}</h1>
+      <h1 className="font-serif text-3xl lg:text-4xl font-light">{t('dashboard.welcome')}, {me.name}</h1>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="border rounded-xl p-4 bg-card">
-          <h3 className="font-medium mb-2">Account</h3>
+          <h3 className="font-medium mb-2">{t('header.myAccount')}</h3>
           <p className="text-sm text-muted-foreground">{me.email}</p>
           {me.role !== "admin" && (
             <div className="pt-4">
               <DeleteAccountDialog
                 onConfirm={(password, confirm) => deleteMutation.mutate({ password, confirm })}
-                loading={deleteMutation.isLoading}
+                loading={deleteMutation.isPending}
               >
                 <Button variant="outline" className="text-red-500 border-red-500 hover:bg-red-500/10">
-                  Delete My Account
+                  {t('common.delete')} {t('header.myAccount')}
                 </Button>
               </DeleteAccountDialog>
             </div>
@@ -95,47 +97,47 @@ export default function UserDashboard() {
         </div>
         <div className="border rounded-xl p-4 bg-card">
           <div className="flex items-center justify-between mb-2">
-            <h3 className="font-medium">Your Orders</h3>
+            <h3 className="font-medium">{t('dashboard.orders')}</h3>
             <Package className="h-5 w-5 text-muted-foreground" />
           </div>
           {recentOrders.length > 0 ? (
             <>
               <p className="text-2xl font-serif font-light mb-2">{orders.length}</p>
               <p className="text-sm text-muted-foreground mb-4">
-                {recentOrders.length} recent order{recentOrders.length !== 1 ? 's' : ''}
+                {recentOrders.length} {t('dashboard.recentOrders').toLowerCase()}
               </p>
               <Link href="/purchase-history">
                 <Button variant="outline" className="w-full">
                   <ShoppingBag className="h-4 w-4 mr-2" />
-                  View All Orders
+                  {t('dashboard.orderHistory')}
                 </Button>
               </Link>
             </>
           ) : (
             <>
-              <p className="text-sm text-muted-foreground mb-4">No orders yet</p>
+              <p className="text-sm text-muted-foreground mb-4">{t('dashboard.noOrders')}</p>
               <Link href="/products">
                 <Button variant="outline" className="w-full">
                   <ShoppingBag className="h-4 w-4 mr-2" />
-                  Start Shopping
+                  {t('home.hero.cta')}
                 </Button>
               </Link>
             </>
           )}
         </div>
         <div className="border rounded-xl p-4 bg-card">
-          <h3 className="font-medium mb-2">Actions</h3>
+          <h3 className="font-medium mb-2">{t('admin.actions')}</h3>
           <div className="flex gap-2">
             <Confirm
-              title="Confirm Logout"
-              description="Are you sure you want to sign out of your account?"
-              confirmLabel="Logout"
+              title={t('header.logout')}
+              description={t('dashboard.confirmLogout')}
+              confirmLabel={t('header.logout')}
               onConfirm={logout}
             >
-              <Button variant="outline">Logout</Button>
+              <Button variant="outline">{t('header.logout')}</Button>
             </Confirm>
             {me.role === "admin" && (
-              <Link href="/admin"><Button>Admin Dashboard</Button></Link>
+              <Link href="/admin"><Button>{t('admin.title')}</Button></Link>
             )}
           </div>
         </div>
@@ -143,12 +145,12 @@ export default function UserDashboard() {
 
       {recentOrders.length > 0 && (
         <div className="border rounded-xl p-6 bg-card">
-          <h3 className="font-medium mb-4">Recent Orders</h3>
+          <h3 className="font-medium mb-4">{t('dashboard.recentOrders')}</h3>
           <div className="space-y-3">
             {recentOrders.map((order: any) => (
               <div key={order.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors">
                 <div>
-                  <p className="font-medium text-sm">Order #{order.id.slice(0, 8)}</p>
+                  <p className="font-medium text-sm">{t('dashboard.orderNumber')}{order.id.slice(0, 8)}</p>
                   <p className="text-xs text-muted-foreground">
                     {new Date(order.createdAt).toLocaleDateString()}
                   </p>
@@ -164,7 +166,7 @@ export default function UserDashboard() {
                           : "bg-gray-100 text-gray-700"
                     }`}
                   >
-                    {order.status}
+                    {t(`orderStatus.${order.status}`)}
                   </span>
                 </div>
               </div>
@@ -173,7 +175,7 @@ export default function UserDashboard() {
           {orders.length > 3 && (
             <div className="mt-4 text-center">
               <Link href="/purchase-history">
-                <Button variant="link">View all {orders.length} orders →</Button>
+                <Button variant="ghost">{t('dashboard.orderHistory')} ({orders.length}) →</Button>
               </Link>
             </div>
           )}

@@ -6,7 +6,7 @@ import { z } from "zod";
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
-  email: text("email").notNull(),
+  email: text("email").notNull().unique(),
   passwordHash: text("password_hash").notNull(),
   role: text("role").notNull().default("user"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -32,6 +32,7 @@ export const products = pgTable("products", {
   material: text("material").notNull(),
   isPreOrder: boolean("is_pre_order").notNull().default(false),
   inStock: boolean("in_stock").notNull().default(true),
+  stockQuantity: integer("stock_quantity").notNull().default(100),
   sizes: text("sizes").array(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 }, (table) => ({
@@ -79,6 +80,7 @@ export const orders = pgTable("orders", {
   status: text("status").notNull().default("pending"),
   isPreOrder: boolean("is_pre_order").notNull().default(false),
   paymentStatus: text("payment_status").notNull().default("pending"),
+  idempotencyKey: text("idempotency_key").unique(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 }, (table) => ({
   userIdIdx: sql`CREATE INDEX IF NOT EXISTS orders_user_id_idx ON ${table} (user_id)`,
