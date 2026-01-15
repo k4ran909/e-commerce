@@ -78,7 +78,9 @@
     "category": "Kategori",
     "quantity": "Jumlah",
     "addToCart": "Tambah ke Keranjang",
-    "backToProducts": "Kembali ke Produk"
+    "backToProducts": "Kembali ke Produk",
+    "materialDescription": "Dibuat dari {{material}}, setiap bagian dibuat dengan hati-hati oleh pengrajin terampil. Kami hanya menggunakan bahan yang bersumber secara etis dan batu permata bebas konflik.",
+    "shippingDescription": "Pengiriman gratis untuk semua pesanan di atas Rp 1.000.000. Pengiriman standar memakan waktu 3-5 hari kerja. Pengiriman ekspres tersedia saat checkout. Barang pre-order dikirim dalam 2-4 minggu."
   },
   "cart": {
     "title": "Keranjang Belanja",

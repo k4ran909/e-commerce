@@ -78,7 +78,9 @@
     "category": "Catégorie",
     "quantity": "Quantité",
     "addToCart": "Ajouter au panier",
-    "backToProducts": "Retour aux produits"
+    "backToProducts": "Retour aux produits",
+    "materialDescription": "Fabriqué à partir de {{material}}, chaque pièce est soigneusement faite à la main par des artisans qualifiés. Nous utilisons uniquement des matériaux d'origine éthique et des pierres précieuses sans conflit.",
+    "shippingDescription": "Livraison gratuite pour toutes les commandes supérieures à Rp 1.000.000. La livraison standard prend 3 à 5 jours ouvrables. Expédition express disponible lors du paiement. Les articles en précommande sont expédiés dans les 2 à 4 semaines."
   },
   "cart": {
     "title": "Panier d'achat",

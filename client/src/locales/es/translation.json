@@ -78,7 +78,9 @@
     "category": "Categoría",
     "quantity": "Cantidad",
     "addToCart": "Añadir al Carrito",
-    "backToProducts": "Volver a Productos"
+    "backToProducts": "Volver a Productos",
+    "materialDescription": "Elaborado con {{material}}, cada pieza está cuidadosamente hecha a mano por artesanos expertos. Utilizamos solo materiales de origen ético y piedras preciosas libres de conflictos.",
+    "shippingDescription": "Envío gratis en todos los pedidos superiores a Rp 1.000.000. La entrega estándar tarda de 3 a 5 días hábiles. Envío exprés disponible al finalizar la compra. Los artículos en preventa se envían en 2-4 semanas."
   },
   "cart": {
     "title": "Carrito de Compras",

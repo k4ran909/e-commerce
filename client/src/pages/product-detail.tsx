@@ -275,16 +275,12 @@ export default function ProductDetail() {
               </TabsContent>
               <TabsContent value="materials" className="mt-3 sm:mt-4 text-xs sm:text-sm leading-relaxed px-1 sm:px-0">
                 <p>
-                  Crafted from {product.material}, each piece is carefully handmade by
-                  skilled artisans. We use only ethically sourced materials and
-                  conflict-free gemstones.
+                  {t('productDetail.materialDescription', { material: product.material })}
                 </p>
               </TabsContent>
               <TabsContent value="shipping" className="mt-3 sm:mt-4 text-xs sm:text-sm leading-relaxed px-1 sm:px-0">
                 <p>
-                  Free shipping on all orders over Rp 1.000.000. Standard delivery
-                  takes 3-5 business days. Express shipping available at checkout.
-                  Pre-order items ship within 2-4 weeks.
+                  {t('productDetail.shippingDescription')}
                 </p>
               </TabsContent>
             </Tabs>

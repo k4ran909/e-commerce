@@ -78,7 +78,9 @@
     "category": "Category",
     "quantity": "Quantity",
     "addToCart": "Add to Cart",
-    "backToProducts": "Back to Products"
+    "backToProducts": "Back to Products",
+    "materialDescription": "Crafted from {{material}}, each piece is carefully handmade by skilled artisans. We use only ethically sourced materials and conflict-free gemstones.",
+    "shippingDescription": "Free shipping on all orders over Rp 1.000.000. Standard delivery takes 3-5 business days. Express shipping available at checkout. Pre-order items ship within 2-4 weeks."
   },
   "cart": {
     "title": "Shopping Cart",

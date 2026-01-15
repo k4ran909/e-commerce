@@ -26,8 +26,8 @@ import { ThemeProvider } from "@/lib/theme-context";
 function AppLayout() {
   const [location] = useLocation();
   
-  // Only show footer on home and products pages
-  const showFooter = location === "/" || location.startsWith("/products") || location.startsWith("/product/");
+  // Only show footer on home and products pages (not on product detail)
+  const showFooter = location === "/" || location.startsWith("/products");
 
   return (
     <div className="min-h-screen flex flex-col">
