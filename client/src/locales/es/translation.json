@@ -285,7 +285,7 @@
     "materialField": "Material",
     "materialPlaceholder": "ej. Plata de Ley",
     "imageUrlField": "URL de Imagen",
-    "imageUrlPlaceholder": "/assets/image.png",
+    "imageUrlPlaceholder": "/assets/image.webp",
     "galleryImagesField": "Imágenes de Galería",
     "galleryImagesPlaceholder": "Subir imágenes adicionales del producto",
     "descriptionField": "Descripción",

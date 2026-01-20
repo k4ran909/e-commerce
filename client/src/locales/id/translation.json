@@ -285,7 +285,7 @@
     "materialField": "Bahan",
     "materialPlaceholder": "contoh: Perak Sterling",
     "imageUrlField": "URL Gambar",
-    "imageUrlPlaceholder": "/assets/image.png",
+    "imageUrlPlaceholder": "/assets/image.webp",
     "galleryImagesField": "Gambar Galeri",
     "galleryImagesPlaceholder": "Unggah gambar produk tambahan",
     "descriptionField": "Deskripsi",

@@ -283,7 +283,7 @@
     "materialField": "Material",
     "materialPlaceholder": "e.g. Sterling Silver",
     "imageUrlField": "Image URL",
-    "imageUrlPlaceholder": "/assets/image.png",
+    "imageUrlPlaceholder": "/assets/image.webp",
     "galleryImagesField": "Gallery Images",
     "galleryImagesPlaceholder": "Upload additional product images",
     "descriptionField": "Description",

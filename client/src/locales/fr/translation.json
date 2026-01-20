@@ -285,7 +285,7 @@
     "materialField": "Matériau",
     "materialPlaceholder": "ex. Argent Sterling",
     "imageUrlField": "URL de l'Image",
-    "imageUrlPlaceholder": "/assets/image.png",
+    "imageUrlPlaceholder": "/assets/image.webp",
     "galleryImagesField": "Images de Galerie",
     "galleryImagesPlaceholder": "Télécharger des images supplémentaires du produit",
     "descriptionField": "Description",

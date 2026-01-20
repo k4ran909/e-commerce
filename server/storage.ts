@@ -118,10 +118,10 @@ export class MemStorage implements IStorage {
         description:
           "Exquisite handcrafted rose gold ring featuring a brilliant-cut diamond. Perfect for engagements or special occasions. Each piece is carefully crafted by skilled artisans.",
         category: "rings",
-        imageUrl: "/Rose_gold_diamond_ring_406b3b84.png",
+        imageUrl: "/Rose_gold_diamond_ring_406b3b84.webp",
         images: [
-          "/Rose_gold_diamond_ring_406b3b84.png",
-          "/Rose_gold_diamond_ring_406b3b84.png",
+          "/Rose_gold_diamond_ring_406b3b84.webp",
+          "/Rose_gold_diamond_ring_406b3b84.webp",
         ],
         material: "14K Rose Gold, Diamond",
         isPreOrder: false,
@@ -133,10 +133,10 @@ export class MemStorage implements IStorage {
         description:
           "Delicate gold chain necklace with an elegant pendant. A timeless piece that complements any outfit. Crafted from premium materials.",
         category: "necklaces",
-        imageUrl: "/Gold_pendant_necklace_84aa4494.png",
+        imageUrl: "/Gold_pendant_necklace_84aa4494.webp",
         images: [
-          "/Gold_pendant_necklace_84aa4494.png",
-          "/Gold_pendant_necklace_84aa4494.png",
+          "/Gold_pendant_necklace_84aa4494.webp",
+          "/Gold_pendant_necklace_84aa4494.webp",
         ],
         material: "18K Yellow Gold",
         isPreOrder: false,
@@ -147,10 +147,10 @@ export class MemStorage implements IStorage {
         description:
           "Elegant sterling silver bracelet with customizable charm options. A perfect gift for loved ones. Each charm tells a unique story.",
         category: "bracelets",
-        imageUrl: "/Silver_charm_bracelet_db9c5a93.png",
+        imageUrl: "/Silver_charm_bracelet_db9c5a93.webp",
         images: [
-          "/Silver_charm_bracelet_db9c5a93.png",
-          "/Silver_charm_bracelet_db9c5a93.png",
+          "/Silver_charm_bracelet_db9c5a93.webp",
+          "/Silver_charm_bracelet_db9c5a93.webp",
         ],
         material: "Sterling Silver",
         isPreOrder: false,
@@ -162,10 +162,10 @@ export class MemStorage implements IStorage {
         description:
           "Classic pearl earrings set in premium metal. Timeless elegance for everyday wear. Perfect for both casual and formal occasions.",
         category: "earrings",
-        imageUrl: "/Pearl_stud_earrings_00219806.png",
+        imageUrl: "/Pearl_stud_earrings_00219806.webp",
         images: [
-          "/Pearl_stud_earrings_00219806.png",
-          "/Pearl_stud_earrings_00219806.png",
+          "/Pearl_stud_earrings_00219806.webp",
+          "/Pearl_stud_earrings_00219806.webp",
         ],
         material: "Freshwater Pearl, Sterling Silver",
         isPreOrder: false,
@@ -176,10 +176,10 @@ export class MemStorage implements IStorage {
         description:
           "Set of three delicate stackable rings in rose gold. Mix and match for a personalized look. Each ring is designed to complement the others beautifully.",
         category: "rings",
-        imageUrl: "/Rose_gold_stackable_rings_c4608c25.png",
+        imageUrl: "/Rose_gold_stackable_rings_c4608c25.webp",
         images: [
-          "/Rose_gold_stackable_rings_c4608c25.png",
-          "/Rose_gold_stackable_rings_c4608c25.png",
+          "/Rose_gold_stackable_rings_c4608c25.webp",
+          "/Rose_gold_stackable_rings_c4608c25.webp",
         ],
         material: "14K Rose Gold",
         isPreOrder: true,
@@ -191,10 +191,10 @@ export class MemStorage implements IStorage {
         description:
           "Modern hoop earrings in polished gold. Versatile and sophisticated for any occasion. A must-have addition to your jewelry collection.",
         category: "earrings",
-        imageUrl: "/Gold_hoop_earrings_86358172.png",
+        imageUrl: "/Gold_hoop_earrings_86358172.webp",
         images: [
-          "/Gold_hoop_earrings_86358172.png",
-          "/Gold_hoop_earrings_86358172.png",
+          "/Gold_hoop_earrings_86358172.webp",
+          "/Gold_hoop_earrings_86358172.webp",
         ],
         material: "18K Yellow Gold",
         isPreOrder: false,
@@ -205,10 +205,10 @@ export class MemStorage implements IStorage {
         description:
           "Symbolic infinity pendant on a delicate silver chain. Represents eternal love and friendship. A meaningful gift for someone special.",
         category: "necklaces",
-        imageUrl: "/Silver_infinity_necklace_eb3fd355.png",
+        imageUrl: "/Silver_infinity_necklace_eb3fd355.webp",
         images: [
-          "/Silver_infinity_necklace_eb3fd355.png",
-          "/Silver_infinity_necklace_eb3fd355.png",
+          "/Silver_infinity_necklace_eb3fd355.webp",
+          "/Silver_infinity_necklace_eb3fd355.webp",
         ],
         material: "Sterling Silver",
         isPreOrder: false,
@@ -220,9 +220,9 @@ export class MemStorage implements IStorage {
         description:
           "A sleek twisted bracelet with a mirror polish finish. Designed for everyday elegance and comfortable wear.",
         category: "bracelets",
-        imageUrl: "/bracelet_new_1.png",
+        imageUrl: "/bracelet_new_1.webp",
         images: [
-          "/bracelet_new_1.png",
+          "/bracelet_new_1.webp",
         ],
         material: "Sterling Silver",
         isPreOrder: false,
@@ -234,9 +234,9 @@ export class MemStorage implements IStorage {
         description:
           "Delicate link bracelet that layers beautifully with other pieces. Hand-assembled for a fluid drape.",
         category: "bracelets",
-        imageUrl: "/bracelet_new_2.png",
+        imageUrl: "/bracelet_new_2.webp",
         images: [
-          "/bracelet_new_2.png",
+          "/bracelet_new_2.webp",
         ],
         material: "14K Gold Vermeil",
         isPreOrder: false,
@@ -248,9 +248,9 @@ export class MemStorage implements IStorage {
         description:
           "Soft opaline beads strung on a durable cord, finished with a refined clasp. A gentle pop of color.",
         category: "bracelets",
-        imageUrl: "/bracelet_new_3.png",
+        imageUrl: "/bracelet_new_3.webp",
         images: [
-          "/bracelet_new_3.png",
+          "/bracelet_new_3.webp",
         ],
         material: "Glass Beads, Stainless Clasp",
         isPreOrder: false,
@@ -262,9 +262,9 @@ export class MemStorage implements IStorage {
         description:
           "Minimalist cuff with a gentle oval profile. Adjustable fit and lightly brushed finish.",
         category: "bracelets",
-        imageUrl: "/bracelet_new_4.png",
+        imageUrl: "/bracelet_new_4.webp",
         images: [
-          "/bracelet_new_4.png",
+          "/bracelet_new_4.webp",
         ],
         material: "18K Gold Plated Brass",
         isPreOrder: true,
@@ -276,9 +276,9 @@ export class MemStorage implements IStorage {
         description:
           "Fine chain bracelet that catches the light with every move. Lightweight and enduring.",
         category: "bracelets",
-        imageUrl: "/bracelet_new_5.png",
+        imageUrl: "/bracelet_new_5.webp",
         images: [
-          "/bracelet_new_5.png",
+          "/bracelet_new_5.webp",
         ],
         material: "Stainless Steel, PVD Gold",
         isPreOrder: false,
@@ -290,9 +290,9 @@ export class MemStorage implements IStorage {
         description:
           "A modern bar centerpiece on a refined chain. Understated and versatile for daily wear.",
         category: "bracelets",
-        imageUrl: "/bracelet_new_6.png",
+        imageUrl: "/bracelet_new_6.webp",
         images: [
-          "/bracelet_new_6.png",
+          "/bracelet_new_6.webp",
         ],
         material: "Black Onyx, Stainless Steel",
         isPreOrder: false,
@@ -305,9 +305,9 @@ export class MemStorage implements IStorage {
         description:
           "Graceful drop earrings with a gentle arc silhouette. Polished to a mirror sheen.",
         category: "earrings",
-        imageUrl: "/earring_new_1.png",
+        imageUrl: "/earring_new_1.webp",
         images: [
-          "/earring_new_1.png",
+          "/earring_new_1.webp",
         ],
         material: "Sterling Silver",
         isPreOrder: false,
@@ -318,9 +318,9 @@ export class MemStorage implements IStorage {
         description:
           "Round studs framed by a subtle halo for added brilliance. A refined everyday pair.",
         category: "earrings",
-        imageUrl: "/earring_new_2.png",
+        imageUrl: "/earring_new_2.webp",
         images: [
-          "/earring_new_2.png",
+          "/earring_new_2.webp",
         ],
         material: "14K Gold Vermeil",
         isPreOrder: false,
@@ -331,9 +331,9 @@ export class MemStorage implements IStorage {
         description:
           "Sculpted hoops with a tapered profile. Lightweight for comfortable, all-day wear.",
         category: "earrings",
-        imageUrl: "/earring_new_3.png",
+        imageUrl: "/earring_new_3.webp",
         images: [
-          "/earring_new_3.png",
+          "/earring_new_3.webp",
         ],
         material: "18K Gold Plated Brass",
         isPreOrder: true,
@@ -345,9 +345,9 @@ export class MemStorage implements IStorage {
         description:
           "Refined solitaire pendant suspended on a fine chain. Effortlessly elegant.",
         category: "necklaces",
-        imageUrl: "/necklace_new_1.jpg",
+        imageUrl: "/necklace_new_1.webp",
         images: [
-          "/necklace_new_1.jpg",
+          "/necklace_new_1.webp",
         ],
         material: "18K Yellow Gold",
         isPreOrder: false,
@@ -358,9 +358,9 @@ export class MemStorage implements IStorage {
         description:
           "Y-shaped necklace with a delicate vertical drop. Designed to elongate the neckline.",
         category: "necklaces",
-        imageUrl: "/necklace_new_2.jpg",
+        imageUrl: "/necklace_new_2.webp",
         images: [
-          "/necklace_new_2.jpg",
+          "/necklace_new_2.webp",
         ],
         material: "Sterling Silver",
         isPreOrder: false,
@@ -371,9 +371,9 @@ export class MemStorage implements IStorage {
         description:
           "Minimal lariat necklace featuring a slender bar accent. Perfect for layering.",
         category: "necklaces",
-        imageUrl: "/necklace_new_3.jpg",
+        imageUrl: "/necklace_new_3.webp",
         images: [
-          "/necklace_new_3.jpg",
+          "/necklace_new_3.webp",
         ],
         material: "14K Gold Vermeil",
         isPreOrder: true,
@@ -385,9 +385,9 @@ export class MemStorage implements IStorage {
         description:
           "A modern take on the classic signet ring with a smooth, bold face.",
         category: "rings",
-        imageUrl: "/ring_new_1.png",
+        imageUrl: "/ring_new_1.webp",
         images: [
-          "/ring_new_1.png",
+          "/ring_new_1.webp",
         ],
         material: "14K Gold Vermeil",
         isPreOrder: false,
@@ -399,9 +399,9 @@ export class MemStorage implements IStorage {
         description:
           "A slender band crowned with a brilliant center stone. Romantic and timeless.",
         category: "rings",
-        imageUrl: "/ring_new_2.png",
+        imageUrl: "/ring_new_2.webp",
         images: [
-          "/ring_new_2.png",
+          "/ring_new_2.webp",
         ],
         material: "14K Rose Gold",
         isPreOrder: false,
@@ -413,9 +413,9 @@ export class MemStorage implements IStorage {
         description:
           "Slim stacking ring designed to pair beautifully with your daily pieces.",
         category: "rings",
-        imageUrl: "/ring_new_3.png",
+        imageUrl: "/ring_new_3.webp",
         images: [
-          "/ring_new_3.png",
+          "/ring_new_3.webp",
         ],
         material: "Sterling Silver",
         isPreOrder: false,
@@ -427,9 +427,9 @@ export class MemStorage implements IStorage {
         description:
           "Two interlocking bands symbolizing balance and unity. A sculptural statement.",
         category: "rings",
-        imageUrl: "/ring_new_4.png",
+        imageUrl: "/ring_new_4.webp",
         images: [
-          "/ring_new_4.png",
+          "/ring_new_4.webp",
         ],
         material: "18K Gold Plated Brass",
         isPreOrder: true,
@@ -441,9 +441,9 @@ export class MemStorage implements IStorage {
         description:
           "Delicate pavé band that adds a touch of sparkle to any stack.",
         category: "rings",
-        imageUrl: "/ring_new_5.png",
+        imageUrl: "/ring_new_5.webp",
         images: [
-          "/ring_new_5.png",
+          "/ring_new_5.webp",
         ],
         material: "18K Yellow Gold, Cubic Zirconia",
         isPreOrder: false,

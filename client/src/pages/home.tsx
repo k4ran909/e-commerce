@@ -6,11 +6,11 @@ import { useTranslation } from "react-i18next";
 
 export default function Home() {
   const { t } = useTranslation();
-  const heroImage = "/Elegant_hero_lifestyle_jewelry_photo_1ea3bf8d.png";
-  const ringsImage = "/Rose_gold_diamond_ring_406b3b84.png";
-  const necklacesImage = "/Gold_pendant_necklace_84aa4494.png";
-  const braceletsImage = "/Silver_charm_bracelet_db9c5a93.png";
-  const earringsImage = "/Pearl_stud_earrings_00219806.png";
+  const heroImage = "/Elegant_hero_lifestyle_jewelry_photo_1ea3bf8d.webp";
+  const ringsImage = "/Rose_gold_diamond_ring_406b3b84.webp";
+  const necklacesImage = "/Gold_pendant_necklace_84aa4494.webp";
+  const braceletsImage = "/Silver_charm_bracelet_db9c5a93.webp";
+  const earringsImage = "/Pearl_stud_earrings_00219806.webp";
   const categories = [
     {
       name: t('products.rings'),

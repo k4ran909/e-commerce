@@ -511,7 +511,7 @@ curl -X POST http://localhost:5173/api/products \
     "description": "Test description",
     "price": 100000000,
     "category": "rings",
-    "imageUrl": "/test.png",
+    "imageUrl": "/test.webp",
     "material": "Gold",
     "inStock": true
   }'
