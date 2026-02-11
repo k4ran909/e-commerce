@@ -125,17 +125,6 @@ Handles **500-1000 concurrent users** with:
 - Race condition prevention
 - Optimized queries with indexes
 
----
-
-## 👥 Contributors
-
-Group 1:
-- Reynaldi Siregar
-- Arif Maulana
-- R Muhammad Haris
-- Aji malela
-- Ardika Zaki
-- Teuku Rifky
 
 ## 📄 License
 
