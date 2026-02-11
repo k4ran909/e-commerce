@@ -1,4 +1,3 @@
-import { useQuery } from "@tanstack/react-query";
 import { useRoute, Link } from "wouter";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
@@ -9,30 +8,31 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowLeft, Minus, Plus, ShoppingBag } from "lucide-react";
-import type { Product } from "@shared/schema";
 import { useState, useEffect } from "react";
 import { useCart } from "@/lib/cart-context";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth-context";
+import { useMedusa } from "@/lib/medusa-provider";
 import { useLocation } from "wouter";
 import { sanitizeImageUrl } from "@/lib/image-utils";
+import { useMedusaProduct } from "@/lib/use-medusa-products";
 
 export default function ProductDetail() {
   const { t } = useTranslation();
   const [, params] = useRoute("/product/:id");
   const productId = params?.id;
-  
-  const { data: product, isLoading } = useQuery<Product>({
-    queryKey: ["/api/products", productId],
-    enabled: !!productId,
-  });
+
+  // Fetch from Medusa
+  const { data: product, isLoading, error } = useMedusaProduct(productId);
 
   const [selectedSize, setSelectedSize] = useState<string>("");
   const [quantity, setQuantity] = useState(1);
   const [imageLoaded, setImageLoaded] = useState(false);
-  const { addToCart, toggleCart } = useCart();
+  const { toggleCart, setIsCartOpen } = useCart();
+  const { addToCart: medusaAddToCart, formatPrice, isAuthenticated } = useMedusa();
   const { toast } = useToast();
   const { me } = useAuth();
+  const [adding, setAdding] = useState(false);
   const [, setLocation] = useLocation();
   const search = typeof window !== "undefined" ? window.location.search : "";
   const paramsSearch = new URLSearchParams(search);
@@ -43,7 +43,7 @@ export default function ProductDetail() {
   useEffect(() => {
     setImageLoaded(false);
   }, [product?.id]);
-  
+
   // Validate and sanitize image URL
   const imageUrl = sanitizeImageUrl(product?.imageUrl);
 
@@ -66,11 +66,16 @@ export default function ProductDetail() {
     );
   }
 
-  if (!product) {
+  if (error || !product) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center px-4">
         <div className="text-center">
           <h2 className="font-serif text-xl sm:text-2xl mb-4">{t('products.noProducts')}</h2>
+          {error && (
+            <p className="text-muted-foreground text-sm mb-4">
+              Error fetching from Medusa: {(error as Error).message}
+            </p>
+          )}
           <Link href={backHref}>
             <Button>{backLabel}</Button>
           </Link>
@@ -79,14 +84,11 @@ export default function ProductDetail() {
     );
   }
 
-  const formattedPrice = new Intl.NumberFormat("id-ID", {
-    style: "currency",
-    currency: "IDR",
-    minimumFractionDigits: 0,
-  }).format(product.price / 100);
+  // Use Medusa formatPrice
+  const formattedPrice = formatPrice(product.price);
 
-  const handleAddToCart = () => {
-    if (!me) {
+  const handleAddToCart = async () => {
+    if (!me && !isAuthenticated) {
       toast({ title: t('cart.loginRequired'), description: t('cart.loginToCheckout'), variant: "destructive" });
       const current = window.location.pathname + window.location.search;
       setLocation(`/login?returnTo=${encodeURIComponent(current)}`);
@@ -100,12 +102,26 @@ export default function ProductDetail() {
       return;
     }
 
-    addToCart(product, selectedSize, quantity);
-    toast({
-      title: t('cart.itemAdded'),
-      description: `${product.name} ${t('cart.itemAdded').toLowerCase()}`,
-    });
-    toggleCart();
+    // For Medusa, construct variant ID from product ID
+    const variantId = product.id.replace('prod_', 'variant_');
+
+    setAdding(true);
+    try {
+      await medusaAddToCart(variantId, quantity);
+      toast({
+        title: t('cart.itemAdded'),
+        description: `${product.name} added to your cart`,
+      });
+      setIsCartOpen(true);
+    } catch (err: any) {
+      toast({
+        title: "Error",
+        description: err.message || "Failed to add to cart",
+        variant: "destructive",
+      });
+    } finally {
+      setAdding(false);
+    }
   };
 
   return (
@@ -129,9 +145,8 @@ export default function ProductDetail() {
               <img
                 src={imageUrl}
                 alt={product.name}
-                className={`h-full w-full object-contain transition-opacity duration-300 ${
-                  imageLoaded ? 'opacity-100' : 'opacity-0'
-                }`}
+                className={`h-full w-full object-contain transition-opacity duration-300 ${imageLoaded ? 'opacity-100' : 'opacity-0'
+                  }`}
                 data-testid="img-product-main"
                 onLoad={() => setImageLoaded(true)}
                 onError={(e) => {
@@ -265,35 +280,39 @@ export default function ProductDetail() {
               size="lg"
               className="w-full text-sm sm:text-base h-11 sm:h-12"
               onClick={handleAddToCart}
-              disabled={!product.inStock && !product.isPreOrder}
+              disabled={adding || (!product.inStock && !product.isPreOrder)}
               data-testid="button-add-to-cart"
             >
-              <ShoppingBag className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
-              {product.isPreOrder ? t('products.preOrder') : t('productDetail.addToCart')}
+              {adding ? (
+                <div className="h-5 w-5 mr-2 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <ShoppingBag className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
+              )}
+              {adding ? "Adding..." : product.isPreOrder ? t('products.preOrder') : t('productDetail.addToCart')}
             </Button>
 
             {/* Product Details Tabs */}
             <Tabs defaultValue="description" className="mt-6 sm:mt-8">
               <TabsList className="w-full grid grid-cols-3 h-auto gap-1 p-0.5 sm:p-1">
-                <TabsTrigger 
-                  value="description" 
-                  data-testid="tab-description" 
+                <TabsTrigger
+                  value="description"
+                  data-testid="tab-description"
                   className="text-[10px] sm:text-xs md:text-sm px-1 sm:px-2 py-1.5 sm:py-2 leading-tight"
                 >
                   <span className="block sm:hidden">Info</span>
                   <span className="hidden sm:block">{t('productDetail.description')}</span>
                 </TabsTrigger>
-                <TabsTrigger 
-                  value="materials" 
-                  data-testid="tab-materials" 
+                <TabsTrigger
+                  value="materials"
+                  data-testid="tab-materials"
                   className="text-[10px] sm:text-xs md:text-sm px-1 sm:px-2 py-1.5 sm:py-2 leading-tight"
                 >
                   <span className="block sm:hidden">Material</span>
                   <span className="hidden sm:block">{t('productDetail.material')}</span>
                 </TabsTrigger>
-                <TabsTrigger 
-                  value="shipping" 
-                  data-testid="tab-shipping" 
+                <TabsTrigger
+                  value="shipping"
+                  data-testid="tab-shipping"
                   className="text-[10px] sm:text-xs md:text-sm px-1 sm:px-2 py-1.5 sm:py-2 leading-tight"
                 >
                   <span className="block sm:hidden">Ship</span>

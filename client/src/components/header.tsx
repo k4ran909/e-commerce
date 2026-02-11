@@ -6,6 +6,7 @@ import { useTheme } from "@/lib/theme-context";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { Sheet, SheetContent, SheetTrigger, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import { useCart } from "@/lib/cart-context";
+import { useMedusa } from "@/lib/medusa-provider";
 import { useAuth } from "@/lib/auth-context";
 import { Input } from "@/components/ui/input";
 import { AuthModal } from "@/components/modals/auth-modal";
@@ -24,7 +25,11 @@ export function Header() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const { totalItems, toggleCart } = useCart();
+  const { cartItemsCount: medusaCartCount } = useMedusa();
   const { me, logout } = useAuth();
+
+  // Use Medusa cart count if available, otherwise fall back to legacy
+  const displayCartCount = medusaCartCount > 0 ? medusaCartCount : totalItems;
   const [authOpen, setAuthOpen] = useState(false);
   const recent = useRecentSearches(8);
   const isAuthRoute = location.startsWith("/login") || location.startsWith("/register");
@@ -76,203 +81,201 @@ export function Header() {
 
   return (
     <>
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container mx-auto flex h-16 items-center justify-between px-4 lg:px-8 lg:grid lg:grid-cols-[1fr_auto_1fr]">
-        {/* Logo */}
-        <div className="justify-self-start">
-          <h1
-            onClick={(e) => handleNavClick('/', e)}
-            data-testid="link-home"
-            aria-hidden={searchOpen}
-            className={`font-serif text-xl font-semibold tracking-tight lg:text-2xl cursor-pointer hover-elevate px-3 py-2 rounded-md transition-all duration-200 ${
-              searchOpen ? "opacity-0 scale-95 pointer-events-none" : ""
-            }`}
-          >
-            Lumière
-          </h1>
-        </div>
-
-        {/* Desktop Navigation */}
-        <nav className={`hidden lg:flex items-center gap-1 justify-self-center transition-all duration-200 ${searchOpen ? "opacity-0 scale-95 pointer-events-none" : "opacity-100 scale-100"}`}>
-          {navLinks.map((link) => (
-            <Button
-              key={link.path}
-              variant="ghost"
-              data-testid={`link-${link.label.toLowerCase().replace(/\s+/g, '-')}`}
-              className={`font-medium text-sm ${
-                location === link.path ? "text-foreground" : "text-muted-foreground"
-              }`}
-              onClick={(e) => handleNavClick(link.path, e)}
+      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container mx-auto flex h-16 items-center justify-between px-4 lg:px-8 lg:grid lg:grid-cols-[1fr_auto_1fr]">
+          {/* Logo */}
+          <div className="justify-self-start">
+            <h1
+              onClick={(e) => handleNavClick('/', e)}
+              data-testid="link-home"
+              aria-hidden={searchOpen}
+              className={`font-serif text-xl font-semibold tracking-tight lg:text-2xl cursor-pointer hover-elevate px-3 py-2 rounded-md transition-all duration-200 ${searchOpen ? "opacity-0 scale-95 pointer-events-none" : ""
+                }`}
             >
-              {link.label}
-            </Button>
-          ))}
-        </nav>
+              Craftellar
+            </h1>
+          </div>
 
-        {/* Right side icons (mobile: Search + Cart + Menu; desktop adds Theme/Profile) */}
-        <div className={`flex items-center gap-1 sm:gap-2 lg:justify-self-end transition-all duration-200 ${searchOpen ? "opacity-0 scale-95 pointer-events-none" : "opacity-100 scale-100"}`}>
-          {!searchOpen && (
-            <Button
-              variant="ghost"
-              size="icon"
-              data-testid="button-search"
-              className="rounded-full"
-              onClick={() => setSearchOpen(true)}
-            >
-              <Search className="h-5 w-5" />
-              <span className="sr-only">Search</span>
-            </Button>
-          )}
+          {/* Desktop Navigation */}
+          <nav className={`hidden lg:flex items-center gap-1 justify-self-center transition-all duration-200 ${searchOpen ? "opacity-0 scale-95 pointer-events-none" : "opacity-100 scale-100"}`}>
+            {navLinks.map((link) => (
+              <Button
+                key={link.path}
+                variant="ghost"
+                data-testid={`link-${link.label.toLowerCase().replace(/\s+/g, '-')}`}
+                className={`font-medium text-sm ${location === link.path ? "text-foreground" : "text-muted-foreground"
+                  }`}
+                onClick={(e) => handleNavClick(link.path, e)}
+              >
+                {link.label}
+              </Button>
+            ))}
+          </nav>
 
-          {/* Cart Icon (always visible) */}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={toggleCart}
-            data-testid="button-cart"
-            className="rounded-full"
-          >
-            <span className="relative inline-flex">
-              <ShoppingBag className="h-5 w-5" />
-              {totalItems > 0 && (
-                <span
-                  data-testid="badge-cart-count"
-                  className="absolute top-0 right-0 translate-x-1/3 -translate-y-1/3 min-w-[14px] h-[14px] rounded-full bg-primary text-primary-foreground px-[2px] text-[9px] leading-none flex items-center justify-center shadow-sm"
-                >
-                  {totalItems}
-                </span>
-              )}
-            </span>
-            <span className="sr-only">Shopping cart</span>
-          </Button>
-
-          {/* Desktop-only: Theme + Cart + Profile */}
-          <div className="hidden lg:flex items-center gap-2">
-            <LanguageSelector />
-            <ThemeToggle />
-
-            {/* Profile / Auth */}
-            {!me ? (
+          {/* Right side icons (mobile: Search + Cart + Menu; desktop adds Theme/Profile) */}
+          <div className={`flex items-center gap-1 sm:gap-2 lg:justify-self-end transition-all duration-200 ${searchOpen ? "opacity-0 scale-95 pointer-events-none" : "opacity-100 scale-100"}`}>
+            {!searchOpen && (
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => { if (!isAuthRoute) setAuthOpen(true); }}
-                aria-label="Login"
+                data-testid="button-search"
                 className="rounded-full"
-                disabled={isAuthRoute}
+                onClick={() => setSearchOpen(true)}
               >
-                <User className="h-5 w-5" />
+                <Search className="h-5 w-5" />
+                <span className="sr-only">Search</span>
               </Button>
-            ) : (
-              <DropdownMenu.Root>
-                <DropdownMenu.Trigger asChild>
-                  <Button variant="ghost" size="icon" aria-label="Profile" className="rounded-full">
-                    <User className="h-5 w-5" />
-                  </Button>
-                </DropdownMenu.Trigger>
-                <DropdownMenu.Content sideOffset={8} className="min-w-[200px] rounded-md border bg-popover p-2 shadow-md focus:outline-none">
-                  <div className="px-2 py-1.5 text-xs text-muted-foreground">{me.email}</div>
-                  <DropdownMenu.Item asChild>
-                    <Link href="/dashboard" className="focus:outline-none focus:ring-2 focus:ring-ring block px-2 py-1 rounded hover:bg-muted text-sm cursor-pointer">{t('header.myAccount')}</Link>
-                  </DropdownMenu.Item>
-                  {me.role === "admin" && (
-                    <DropdownMenu.Item asChild>
-                      <Link href="/admin" className="focus:outline-none focus:ring-2 focus:ring-ring block px-2 py-1 rounded hover:bg-muted text-sm cursor-pointer">{t('header.admin')}</Link>
-                    </DropdownMenu.Item>
-                  )}
-                  <DropdownMenu.Separator className="my-1 h-px bg-border" />
-                  <Confirm
-                    title={t('header.logout')}
-                    description={t('auth.login.success')}
-                    confirmLabel={t('header.logout')}
-                    onConfirm={logout}
-                  >
-                    <DropdownMenu.Item
-                      onSelect={(e) => e.preventDefault()}
-                      className="w-full text-left px-2 py-1 rounded hover:bg-destructive/15 text-sm focus:outline-none focus:ring-2 focus:ring-destructive"
-                    >
-                      {t('header.logout')}
-                    </DropdownMenu.Item>
-                  </Confirm>
-                </DropdownMenu.Content>
-              </DropdownMenu.Root>
             )}
+
+            {/* Cart Icon (always visible) */}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleCart}
+              data-testid="button-cart"
+              className="rounded-full"
+            >
+              <span className="relative inline-flex">
+                <ShoppingBag className="h-5 w-5" />
+                {displayCartCount > 0 && (
+                  <span
+                    data-testid="badge-cart-count"
+                    className="absolute top-0 right-0 translate-x-1/3 -translate-y-1/3 min-w-[14px] h-[14px] rounded-full bg-primary text-primary-foreground px-[2px] text-[9px] leading-none flex items-center justify-center shadow-sm"
+                  >
+                    {displayCartCount}
+                  </span>
+                )}
+              </span>
+              <span className="sr-only">Shopping cart</span>
+            </Button>
+
+            {/* Desktop-only: Theme + Cart + Profile */}
+            <div className="hidden lg:flex items-center gap-2">
+              <LanguageSelector />
+              <ThemeToggle />
+
+              {/* Profile / Auth */}
+              {!me ? (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => { if (!isAuthRoute) setAuthOpen(true); }}
+                  aria-label="Login"
+                  className="rounded-full"
+                  disabled={isAuthRoute}
+                >
+                  <User className="h-5 w-5" />
+                </Button>
+              ) : (
+                <DropdownMenu.Root>
+                  <DropdownMenu.Trigger asChild>
+                    <Button variant="ghost" size="icon" aria-label="Profile" className="rounded-full">
+                      <User className="h-5 w-5" />
+                    </Button>
+                  </DropdownMenu.Trigger>
+                  <DropdownMenu.Content sideOffset={8} className="min-w-[200px] rounded-md border bg-popover p-2 shadow-md focus:outline-none">
+                    <div className="px-2 py-1.5 text-xs text-muted-foreground">{me.email}</div>
+                    <DropdownMenu.Item asChild>
+                      <Link href="/dashboard" className="focus:outline-none focus:ring-2 focus:ring-ring block px-2 py-1 rounded hover:bg-muted text-sm cursor-pointer">{t('header.myAccount')}</Link>
+                    </DropdownMenu.Item>
+                    {me.role === "admin" && (
+                      <DropdownMenu.Item asChild>
+                        <Link href="/admin" className="focus:outline-none focus:ring-2 focus:ring-ring block px-2 py-1 rounded hover:bg-muted text-sm cursor-pointer">{t('header.admin')}</Link>
+                      </DropdownMenu.Item>
+                    )}
+                    <DropdownMenu.Separator className="my-1 h-px bg-border" />
+                    <Confirm
+                      title={t('header.logout')}
+                      description={t('auth.login.success')}
+                      confirmLabel={t('header.logout')}
+                      onConfirm={logout}
+                    >
+                      <DropdownMenu.Item
+                        onSelect={(e) => e.preventDefault()}
+                        className="w-full text-left px-2 py-1 rounded hover:bg-destructive/15 text-sm focus:outline-none focus:ring-2 focus:ring-destructive"
+                      >
+                        {t('header.logout')}
+                      </DropdownMenu.Item>
+                    </Confirm>
+                  </DropdownMenu.Content>
+                </DropdownMenu.Root>
+              )}
+            </div>
+
+            {/* Mobile Menu */}
+            <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+              <SheetTrigger asChild className="lg:hidden">
+                <Button variant="ghost" size="icon" data-testid="button-menu" className="rounded-full">
+                  <Menu className="h-5 w-5" />
+                  <span className="sr-only">Menu</span>
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-80 px-4 pt-14 pb-6">
+                <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
+                <SheetDescription className="sr-only">
+                  Navigation drawer with links and settings
+                </SheetDescription>
+                <MobileMenuContent
+                  panel={mobilePanel}
+                  setPanel={setMobilePanel}
+                  close={() => { setMobileMenuOpen(false); setMobilePanel('root'); }}
+                  navLinks={navLinks}
+                  me={me}
+                  logout={logout}
+                  location={location}
+                  setLocation={setLocation}
+                  handleNavClick={handleNavClick}
+                />
+              </SheetContent>
+            </Sheet>
           </div>
 
-          {/* Mobile Menu */}
-          <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-            <SheetTrigger asChild className="lg:hidden">
-              <Button variant="ghost" size="icon" data-testid="button-menu" className="rounded-full">
-                <Menu className="h-5 w-5" />
-                <span className="sr-only">Menu</span>
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="right" className="w-80 px-4 pt-14 pb-6">
-              <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
-              <SheetDescription className="sr-only">
-                Navigation drawer with links and settings
-              </SheetDescription>
-              <MobileMenuContent
-                panel={mobilePanel}
-                setPanel={setMobilePanel}
-                close={() => { setMobileMenuOpen(false); setMobilePanel('root'); }}
-                navLinks={navLinks}
-                me={me}
-                logout={logout}
-                location={location}
-                setLocation={setLocation}
-                handleNavClick={handleNavClick}
-              />
-            </SheetContent>
-          </Sheet>
+          {/* Auth Modal */}
+          <AuthModal open={authOpen} onOpenChange={setAuthOpen} />
         </div>
 
-        {/* Auth Modal */}
-        <AuthModal open={authOpen} onOpenChange={setAuthOpen} />
-      </div>
+        {/* Expanded Search Bar */}
+        {searchOpen && (
+          <div className="absolute inset-x-0 top-0 z-50">
+            <div className="container mx-auto px-4 lg:px-8">
+              <form onSubmit={onSubmitSearch} className="relative w-full h-16 flex items-center gap-2 animate-in fade-in zoom-in-95 duration-200">
+                <Search className="absolute left-3 h-5 w-5 text-muted-foreground" />
+                <Input
+                  autoFocus
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder={t('common.search')}
+                  data-testid="input-search"
+                  className="pl-10 h-10 rounded-xl bg-muted/30 border border-border text-base"
+                />
+                <Button type="button" variant="ghost" size="icon" onClick={() => setSearchOpen(false)} aria-label="Close search" className="rounded-full">
+                  <X className="h-5 w-5" />
+                </Button>
+              </form>
 
-      {/* Expanded Search Bar */}
-      {searchOpen && (
-        <div className="absolute inset-x-0 top-0 z-50">
-          <div className="container mx-auto px-4 lg:px-8">
-            <form onSubmit={onSubmitSearch} className="relative w-full h-16 flex items-center gap-2 animate-in fade-in zoom-in-95 duration-200">
-              <Search className="absolute left-3 h-5 w-5 text-muted-foreground" />
-              <Input
-                autoFocus
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={t('common.search')}
-                data-testid="input-search"
-                className="pl-10 h-10 rounded-xl bg-muted/30 border border-border text-base"
+              <SearchSuggestions
+                open={searchOpen}
+                query={searchQuery}
+                onPick={(id) => {
+                  setSearchOpen(false);
+                  setLocation(`/product/${id}`);
+                }}
+                onSeeAll={(q) => {
+                  setSearchOpen(false);
+                  setLocation(`/products?q=${encodeURIComponent(q)}`);
+                }}
+                onNavigate={(path) => {
+                  setSearchOpen(false);
+                  setLocation(path);
+                }}
+                onRemember={(q) => recent.add(q)}
+                recentItems={recent.items}
+                onClearRecent={() => recent.clear()}
               />
-              <Button type="button" variant="ghost" size="icon" onClick={() => setSearchOpen(false)} aria-label="Close search" className="rounded-full">
-                <X className="h-5 w-5" />
-              </Button>
-            </form>
-
-            <SearchSuggestions
-              open={searchOpen}
-              query={searchQuery}
-              onPick={(id) => {
-                setSearchOpen(false);
-                setLocation(`/product/${id}`);
-              }}
-              onSeeAll={(q) => {
-                setSearchOpen(false);
-                setLocation(`/products?q=${encodeURIComponent(q)}`);
-              }}
-              onNavigate={(path) => {
-                setSearchOpen(false);
-                setLocation(path);
-              }}
-              onRemember={(q) => recent.add(q)}
-              recentItems={recent.items}
-              onClearRecent={() => recent.clear()}
-            />
+            </div>
           </div>
-        </div>
-      )}
-    </header>
+        )}
+      </header>
       {searchOpen && (
         <div
           className="fixed inset-0 z-40 bg-background/60 backdrop-blur-md animate-in fade-in duration-150"
@@ -304,7 +307,7 @@ function MobileMenuContent({ panel, setPanel, close, navLinks, me, logout, locat
       { code: 'fr', name: 'Français', flag: '🇫🇷' },
       { code: 'id', name: 'Bahasa Indonesia', flag: '🇮🇩' },
     ];
-    
+
     return (
       <div className="h-full flex flex-col">
         <div className="flex items-center gap-2 h-14 border-b">
@@ -550,116 +553,116 @@ function SearchSuggestions({ open, query, onPick, onSeeAll, onNavigate, onRememb
       {(
         true
       ) && (
-        <div className="absolute left-0 right-0 mt-2 rounded-xl border bg-popover shadow-lg overflow-hidden">
-          {enabled ? (
-            isLoading ? (
-              <div className="p-4 space-y-3">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="flex items-center gap-3">
-                    <Skeleton className="w-12 h-12 rounded" />
-                    <div className="flex-1 space-y-2">
-                      <Skeleton className="h-4 w-3/4" />
-                      <Skeleton className="h-3 w-1/2" />
-                    </div>
-                    <Skeleton className="h-4 w-20" />
-                  </div>
-                ))}
-              </div>
-            ) : results.length === 0 ? (
-              <div className="p-4 text-sm text-muted-foreground">No results</div>
-            ) : (
-              <ul className="max-h-[60vh] overflow-auto divide-y" role="listbox" aria-label="Search suggestions">
-                {results.map((p, i) => (
-                  <li
-                    key={p.id}
-                    className={`p-3 cursor-pointer ${activeIdx === i ? "bg-muted/60" : "hover:bg-muted/40"}`}
-                    onMouseEnter={() => setActiveIdx(i)}
-                    onMouseLeave={() => setActiveIdx(-1)}
-                    onClick={() => onPick(p.id)}
-                    role="option"
-                    aria-selected={activeIdx === i}
-                  >
-                    <div className="flex items-center gap-3">
-                      <img src={p.imageUrl} alt={p.name} className="w-12 h-12 object-contain rounded bg-accent" />
-                      <div className="min-w-0">
-                        <div className="font-medium truncate">{highlight(p.name, debounced)}</div>
-                        <div className="text-xs text-muted-foreground truncate">
-                          {highlight(p.category, debounced)} • {highlight(p.material, debounced)}
-                        </div>
+          <div className="absolute left-0 right-0 mt-2 rounded-xl border bg-popover shadow-lg overflow-hidden">
+            {enabled ? (
+              isLoading ? (
+                <div className="p-4 space-y-3">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="flex items-center gap-3">
+                      <Skeleton className="w-12 h-12 rounded" />
+                      <div className="flex-1 space-y-2">
+                        <Skeleton className="h-4 w-3/4" />
+                        <Skeleton className="h-3 w-1/2" />
                       </div>
-                      <div className="ml-auto text-sm font-serif font-semibold whitespace-nowrap">{formatter.format(p.price / 100)}</div>
+                      <Skeleton className="h-4 w-20" />
                     </div>
-                  </li>
-                ))}
-                <li
-                  className={`p-3 ${activeIdx === results.length ? "bg-muted/60" : "hover:bg-muted/40"}`}
-                  onMouseEnter={() => setActiveIdx(results.length)}
-                  onMouseLeave={() => setActiveIdx(-1)}
-                >
-                  <Button
-                    variant="ghost"
-                    className="w-full"
-                    onClick={() => {
-                      onRemember(debounced);
-                      onSeeAll(debounced);
-                    }}
-                  >
-                    See all results for "{debounced.trim()}"
-                  </Button>
-                </li>
-              </ul>
-            )
-          ) : (
-            <div className="p-3">
-              <div className="px-2 py-2">
-                <div className="text-xs font-medium text-muted-foreground mb-2">Quick categories</div>
-                <div className="flex flex-wrap gap-2">
-                  {[
-                    { label: "Rings", value: "rings" },
-                    { label: "Necklaces", value: "necklaces" },
-                    { label: "Bracelets", value: "bracelets" },
-                    { label: "Earrings", value: "earrings" },
-                  ].map((c) => (
-                    <Button key={c.value} variant="secondary" size="sm" onClick={() => onNavigate(`/products/category/${c.value}`)}>
-                      {c.label}
-                    </Button>
                   ))}
                 </div>
-              </div>
-
-              <div className="px-2 py-2 border-t">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="text-xs font-medium text-muted-foreground">Recent searches</div>
-                  {recentItems.length > 0 && (
-                    <Button variant="ghost" size="sm" onClick={onClearRecent} className="h-7 px-2">
-                      Clear
+              ) : results.length === 0 ? (
+                <div className="p-4 text-sm text-muted-foreground">No results</div>
+              ) : (
+                <ul className="max-h-[60vh] overflow-auto divide-y" role="listbox" aria-label="Search suggestions">
+                  {results.map((p, i) => (
+                    <li
+                      key={p.id}
+                      className={`p-3 cursor-pointer ${activeIdx === i ? "bg-muted/60" : "hover:bg-muted/40"}`}
+                      onMouseEnter={() => setActiveIdx(i)}
+                      onMouseLeave={() => setActiveIdx(-1)}
+                      onClick={() => onPick(p.id)}
+                      role="option"
+                      aria-selected={activeIdx === i}
+                    >
+                      <div className="flex items-center gap-3">
+                        <img src={p.imageUrl} alt={p.name} className="w-12 h-12 object-contain rounded bg-accent" />
+                        <div className="min-w-0">
+                          <div className="font-medium truncate">{highlight(p.name, debounced)}</div>
+                          <div className="text-xs text-muted-foreground truncate">
+                            {highlight(p.category, debounced)} • {highlight(p.material, debounced)}
+                          </div>
+                        </div>
+                        <div className="ml-auto text-sm font-serif font-semibold whitespace-nowrap">{formatter.format(p.price / 100)}</div>
+                      </div>
+                    </li>
+                  ))}
+                  <li
+                    className={`p-3 ${activeIdx === results.length ? "bg-muted/60" : "hover:bg-muted/40"}`}
+                    onMouseEnter={() => setActiveIdx(results.length)}
+                    onMouseLeave={() => setActiveIdx(-1)}
+                  >
+                    <Button
+                      variant="ghost"
+                      className="w-full"
+                      onClick={() => {
+                        onRemember(debounced);
+                        onSeeAll(debounced);
+                      }}
+                    >
+                      See all results for "{debounced.trim()}"
                     </Button>
-                  )}
-                </div>
-                {recentItems.length === 0 ? (
-                  <div className="text-xs text-muted-foreground px-1 py-2">No recent searches</div>
-                ) : (
+                  </li>
+                </ul>
+              )
+            ) : (
+              <div className="p-3">
+                <div className="px-2 py-2">
+                  <div className="text-xs font-medium text-muted-foreground mb-2">Quick categories</div>
                   <div className="flex flex-wrap gap-2">
-                    {recentItems.map((term, i) => (
-                      <Button
-                        key={`${term}-${i}`}
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          onRemember(term);
-                          onSeeAll(term);
-                        }}
-                      >
-                        {term}
+                    {[
+                      { label: "Rings", value: "rings" },
+                      { label: "Necklaces", value: "necklaces" },
+                      { label: "Bracelets", value: "bracelets" },
+                      { label: "Earrings", value: "earrings" },
+                    ].map((c) => (
+                      <Button key={c.value} variant="secondary" size="sm" onClick={() => onNavigate(`/products/category/${c.value}`)}>
+                        {c.label}
                       </Button>
                     ))}
                   </div>
-                )}
+                </div>
+
+                <div className="px-2 py-2 border-t">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="text-xs font-medium text-muted-foreground">Recent searches</div>
+                    {recentItems.length > 0 && (
+                      <Button variant="ghost" size="sm" onClick={onClearRecent} className="h-7 px-2">
+                        Clear
+                      </Button>
+                    )}
+                  </div>
+                  {recentItems.length === 0 ? (
+                    <div className="text-xs text-muted-foreground px-1 py-2">No recent searches</div>
+                  ) : (
+                    <div className="flex flex-wrap gap-2">
+                      {recentItems.map((term, i) => (
+                        <Button
+                          key={`${term}-${i}`}
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            onRemember(term);
+                            onSeeAll(term);
+                          }}
+                        >
+                          {term}
+                        </Button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          )}
-        </div>
-      )}
+            )}
+          </div>
+        )}
     </div>
   );
 }
@@ -675,7 +678,7 @@ function useDebounced(value: string, delay: number) {
 
 function useRecentSearches(max: number = 8) {
   const STORAGE_KEY = "lumiere-recent-searches";
-  
+
   const [items, setItems] = useState<string[]>(() => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
@@ -709,8 +712,8 @@ function useRecentSearches(max: number = 8) {
       return updated;
     });
   };
-  
+
   const clear = () => setItems([]);
-  
+
   return { items, add, clear };
 }

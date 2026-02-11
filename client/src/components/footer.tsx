@@ -1,6 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { useTranslation } from "react-i18next";
-import { Gem, Mail, MapPin, Phone } from "lucide-react";
+import { Mail, MapPin, Phone } from "lucide-react";
 
 export function Footer() {
   const { t } = useTranslation();
@@ -23,11 +23,11 @@ export function Footer() {
           {/* Brand Section */}
           <div className="space-y-4">
             <Link href="/" className="flex items-center gap-2 text-xl font-semibold">
-              <Gem className="h-6 w-6" />
-              <span>JewelCommerce</span>
+              <span className="text-2xl">🧶</span>
+              <span>Craftellar</span>
             </Link>
             <p className="text-sm text-muted-foreground">
-              {t('footer.tagline')}
+              Handmade crochet accessories crafted with love and premium quality yarns.
             </p>
           </div>
 
@@ -38,8 +38,8 @@ export function Footer() {
             </h3>
             <ul className="space-y-2 text-sm">
               <li>
-                <a 
-                  href="/" 
+                <a
+                  href="/"
                   onClick={(e) => handleLinkClick('/', e)}
                   className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
                 >
@@ -47,8 +47,8 @@ export function Footer() {
                 </a>
               </li>
               <li>
-                <a 
-                  href="/products" 
+                <a
+                  href="/products"
                   onClick={(e) => handleLinkClick('/products', e)}
                   className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
                 >
@@ -56,8 +56,8 @@ export function Footer() {
                 </a>
               </li>
               <li>
-                <a 
-                  href="/login" 
+                <a
+                  href="/login"
                   onClick={(e) => handleLinkClick('/login', e)}
                   className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
                 >
@@ -65,8 +65,8 @@ export function Footer() {
                 </a>
               </li>
               <li>
-                <a 
-                  href="/register" 
+                <a
+                  href="/register"
                   onClick={(e) => handleLinkClick('/register', e)}
                   className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
                 >
@@ -83,23 +83,23 @@ export function Footer() {
             </h3>
             <ul className="space-y-2 text-sm">
               <li>
-                <Link href="/products/category/rings" className="text-muted-foreground hover:text-foreground transition-colors">
-                  {t('products.rings')}
+                <Link href="/products?category=bags" className="text-muted-foreground hover:text-foreground transition-colors">
+                  Bags & Purses
                 </Link>
               </li>
               <li>
-                <Link href="/products/category/necklaces" className="text-muted-foreground hover:text-foreground transition-colors">
-                  {t('products.necklaces')}
+                <Link href="/products?category=hats" className="text-muted-foreground hover:text-foreground transition-colors">
+                  Hats & Beanies
                 </Link>
               </li>
               <li>
-                <Link href="/products/category/earrings" className="text-muted-foreground hover:text-foreground transition-colors">
-                  {t('products.earrings')}
+                <Link href="/products?category=scarves" className="text-muted-foreground hover:text-foreground transition-colors">
+                  Scarves & Shawls
                 </Link>
               </li>
               <li>
-                <Link href="/products/category/bracelets" className="text-muted-foreground hover:text-foreground transition-colors">
-                  {t('products.bracelets')}
+                <Link href="/products?category=amigurumi" className="text-muted-foreground hover:text-foreground transition-colors">
+                  Amigurumi
                 </Link>
               </li>
             </ul>
@@ -113,7 +113,7 @@ export function Footer() {
             <ul className="space-y-2 text-sm">
               <li className="flex items-start gap-2 text-muted-foreground">
                 <Mail className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                <span>support@jewelcommerce.com</span>
+                <span>hello@craftellar.com</span>
               </li>
               <li className="flex items-start gap-2 text-muted-foreground">
                 <Phone className="h-4 w-4 mt-0.5 flex-shrink-0" />
@@ -121,7 +121,7 @@ export function Footer() {
               </li>
               <li className="flex items-start gap-2 text-muted-foreground">
                 <MapPin className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                <span>123 Jewelry Street, New York, NY 10001</span>
+                <span>Handmade with ❤️ from our studio</span>
               </li>
             </ul>
           </div>
@@ -130,7 +130,7 @@ export function Footer() {
         {/* Bottom Section */}
         <div className="mt-12 pt-8 border-t">
           <p className="text-sm text-muted-foreground text-center">
-            © {currentYear} JewelCommerce. {t('footer.copyright')}
+            © {currentYear} Craftellar. {t('footer.copyright')}
           </p>
         </div>
       </div>

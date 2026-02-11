@@ -1,28 +1,32 @@
-import { useQuery } from "@tanstack/react-query";
-import { ProductCard } from "@/components/product-card";
+import { MedusaProductCard } from "@/components/medusa-product-card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { Product } from "@shared/schema";
 import { useState, useEffect, useMemo } from "react";
 import { useLocation, useRoute } from "wouter";
 import { useTranslation } from "react-i18next";
+import { useMedusaProducts, type Product } from "@/lib/use-medusa-products";
+
+// Feature flag to switch between Medusa and legacy API
+const USE_MEDUSA = import.meta.env.VITE_USE_MEDUSA !== "false";
 
 export default function Products() {
   const { t } = useTranslation();
   const [location, setLocation] = useLocation();
   const [matchCat, params] = useRoute("/products/category/:category");
   const [searchStr, setSearchStr] = useState<string>(typeof window !== "undefined" ? window.location.search : "");
+
   useEffect(() => {
     if (typeof window !== "undefined") {
       setSearchStr(window.location.search);
     }
   }, [location]);
+
   const urlParams = useMemo(() => new URLSearchParams(searchStr), [searchStr]);
   const categoryFromPath = matchCat ? params?.category ?? null : null;
   const categoryParam = categoryFromPath || urlParams.get("category");
   const qParam = urlParams.get("q")?.trim() || "";
-  
+
   const [selectedCategory, setSelectedCategory] = useState<string>(categoryParam || "all");
   const [sortBy, setSortBy] = useState<string>("featured");
   const [query, setQuery] = useState<string>(qParam);
@@ -39,8 +43,10 @@ export default function Products() {
     setQuery(qParam);
   }, [qParam]);
 
-  const { data: products, isLoading } = useQuery<Product[]>({
-    queryKey: ["/api/products"],
+  // Fetch products from Medusa
+  const { data: products, isLoading, error } = useMedusaProducts({
+    category: selectedCategory !== "all" ? selectedCategory : undefined,
+    q: query || undefined,
   });
 
   const categories = [
@@ -77,12 +83,17 @@ export default function Products() {
             {query
               ? t('products.searchResults', { query })
               : selectedCategory === "all"
-              ? t('products.title')
-              : categories.find((c) => c.value === selectedCategory)?.label}
+                ? t('products.title')
+                : categories.find((c) => c.value === selectedCategory)?.label}
           </h1>
           <p className="text-muted-foreground">
             {filteredProducts.length} {filteredProducts.length === 1 ? t('products.product') : t('products.products')}
           </p>
+          {USE_MEDUSA && (
+            <p className="text-xs text-muted-foreground mt-1">
+              Powered by Medusa
+            </p>
+          )}
         </div>
 
         {/* Filters */}
@@ -92,17 +103,17 @@ export default function Products() {
               <Button
                 key={category.value}
                 variant={selectedCategory === category.value ? "default" : "outline"}
-                  onClick={() => {
-                    const value = category.value;
-                    setSelectedCategory(value);
-                    const params = new URLSearchParams(searchStr || "");
-                    const q = params.get("q");
-                    if (value === "all") {
-                      setLocation(`/products${q ? `?q=${encodeURIComponent(q)}` : ""}`);
-                    } else {
-                      setLocation(`/products/category/${value}${q ? `?q=${encodeURIComponent(q)}` : ""}`);
-                    }
-                  }}
+                onClick={() => {
+                  const value = category.value;
+                  setSelectedCategory(value);
+                  const params = new URLSearchParams(searchStr || "");
+                  const q = params.get("q");
+                  if (value === "all") {
+                    setLocation(`/products${q ? `?q=${encodeURIComponent(q)}` : ""}`);
+                  } else {
+                    setLocation(`/products/category/${value}${q ? `?q=${encodeURIComponent(q)}` : ""}`);
+                  }
+                }}
                 data-testid={`button-category-${category.value}`}
               >
                 {category.label}
@@ -135,6 +146,15 @@ export default function Products() {
               </div>
             ))}
           </div>
+        ) : error ? (
+          <div className="text-center py-12">
+            <p className="text-destructive text-lg mb-4">
+              Failed to load products from Medusa
+            </p>
+            <p className="text-muted-foreground text-sm">
+              Make sure the Medusa backend is running at {import.meta.env.VITE_MEDUSA_BACKEND_URL || 'http://localhost:9000'}
+            </p>
+          </div>
         ) : filteredProducts.length === 0 ? (
           <div className="text-center py-12">
             <p className="text-muted-foreground text-lg">
@@ -144,7 +164,7 @@ export default function Products() {
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 lg:gap-6">
             {filteredProducts.map((product) => (
-              <ProductCard key={product.id} product={product} />
+              <MedusaProductCard key={product.id} product={product} showAddToCart />
             ))}
           </div>
         )}

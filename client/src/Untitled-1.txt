@@ -1,0 +1,35 @@
+## Create Medusa Admin User[#](https://docs.medusajs.com/learn/installation#create-medusa-admin-user)
+[#](https://docs.medusajs.com/learn/installation#create-medusa-admin-user)
+Aside from creating an admin user in the admin dashboard, you can create a user with Medusa's CLI tool.
+Run the following command in your Medusa application's directory to create a new admin user:
+
+```
+https://github.com/medusajs/medusa/issues/new/chooseTerminal❯npx medusa user -e admin@medusajs.com -p supersecret
+```
+
+
+```
+❯npx medusa user -e admin@medusajs.com -p supersecret
+```
+
+
+```
+❯npx medusa user -e admin@medusajs.com -p supersecret
+```
+
+Replace admin@medusajs.com and supersecret with the user's email and password respectively.
+
+```
+admin@medusajs.com
+```
+
+
+```
+supersecret
+```
+
+You can then use the user's credentials to log into the Medusa Admin application.
+
+## Project Files[#](https://docs.medusajs.com/learn/installation#project-files)
+[#](https://docs.medusajs.com/learn/installation#project-files)
+Your Medusa application's project will have the following files and directories:

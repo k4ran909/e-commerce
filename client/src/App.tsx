@@ -5,9 +5,11 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { CartProvider } from "@/lib/cart-context";
 import { AuthProvider } from "@/lib/auth-context";
+import { MedusaProvider } from "@/lib/medusa-provider";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import { CartSheet } from "@/components/cart-sheet";
+import { MedusaCartSheet } from "@/components/medusa-cart-sheet";
 import { ScrollToTop } from "@/components/scroll-to-top";
 import Home from "@/pages/home";
 import Products from "@/pages/products";
@@ -37,6 +39,7 @@ function AppLayout() {
       </main>
       {showFooter && <Footer />}
       <CartSheet />
+      <MedusaCartSheet />
     </div>
   );
 }
@@ -68,12 +71,14 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <ThemeProvider>
-          <AuthProvider>
-            <CartProvider>
-              <AppLayout />
-              <Toaster />
-            </CartProvider>
-          </AuthProvider>
+          <MedusaProvider>
+            <AuthProvider>
+              <CartProvider>
+                <AppLayout />
+                <Toaster />
+              </CartProvider>
+            </AuthProvider>
+          </MedusaProvider>
         </ThemeProvider>
       </TooltipProvider>
     </QueryClientProvider>
